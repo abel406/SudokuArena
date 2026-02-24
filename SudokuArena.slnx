@@ -1,3 +1,13 @@
 <Solution>
-  <Project Path="SudokuArena.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/SudokuArena.Application/SudokuArena.Application.csproj" />
+    <Project Path="src/SudokuArena.Desktop/SudokuArena.Desktop.csproj" />
+    <Project Path="src/SudokuArena.Domain/SudokuArena.Domain.csproj" />
+    <Project Path="src/SudokuArena.Infrastructure/SudokuArena.Infrastructure.csproj" />
+    <Project Path="src/SudokuArena.Server/SudokuArena.Server.csproj" />
+    <Project Path="src/SudokuArena.Sync.Worker/SudokuArena.Sync.Worker.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/SudokuArena.Domain.Tests/SudokuArena.Domain.Tests.csproj" />
+  </Folder>
 </Solution>

@@ -1,0 +1,93 @@
+<Window x:Class="SudokuArena.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:SudokuArena.Desktop.Controls"
+        mc:Ignorable="d"
+        Background="{StaticResource CanvasBackgroundBrush}"
+        Title="Sudoku Arena"
+        Height="760"
+        Width="1220"
+        MinWidth="980"
+        MinHeight="640">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2.3*" />
+            <ColumnDefinition Width="1*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.ColumnSpan="2"
+                CornerRadius="14"
+                Padding="18"
+                Background="{StaticResource SurfaceBrush}">
+            <DockPanel>
+                <TextBlock Text="SUDOKU ARENA"
+                           FontSize="28"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource TextBrush}" />
+                <TextBlock Text="{Binding StatusMessage}"
+                           DockPanel.Dock="Right"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource AccentBrush}"
+                           FontWeight="SemiBold" />
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="1"
+                Margin="0,18,18,0"
+                Padding="16"
+                CornerRadius="14"
+                Background="{StaticResource SurfaceBrush}">
+            <controls:SudokuBoardControl x:Name="BoardControl"
+                                         Focusable="True"
+                                         Cells="{Binding Cells}"
+                                         GivenCells="{Binding GivenCells}"
+                                         SelectedIndex="{Binding SelectedCell, Mode=TwoWay}" />
+        </Border>
+
+        <Border Grid.Row="1"
+                Grid.Column="1"
+                Margin="0,18,0,0"
+                Padding="18"
+                CornerRadius="14"
+                Background="{StaticResource SurfaceBrush}">
+            <StackPanel>
+                <TextBlock Text="Jugador"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextBrush}" />
+                <TextBox Text="{Binding PlayerEmail}" Margin="0,6,0,12" />
+
+                <TextBlock Text="Oponente"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextBrush}" />
+                <TextBox Text="{Binding OpponentEmail}" Margin="0,6,0,12" />
+
+                <Button Content="Nuevo Puzzle" Command="{Binding NewPuzzleCommand}" />
+                <Button Content="Modo LAN" Command="{Binding SwitchToLanCommand}" />
+                <Button Content="Modo Cloud" Command="{Binding SwitchToCloudCommand}" />
+                <Button Content="Host LAN" Command="{Binding HostLanCommand}" />
+                <Button Content="Match Aleatorio" Command="{Binding QuickMatchCommand}" />
+
+                <Border Margin="0,12,0,0"
+                        Padding="12"
+                        CornerRadius="10"
+                        Background="#F1ECE1">
+                    <TextBlock Text="{Binding IsLanMode, StringFormat=Modo activo: {0}}"
+                               Foreground="{StaticResource TextBrush}" />
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Row="2"
+                   Grid.ColumnSpan="2"
+                   Margin="0,14,0,0"
+                   Foreground="{StaticResource TextBrush}"
+                   Text="Controles: click para seleccionar casilla, números 1-9 para jugar, Backspace para borrar." />
+    </Grid>
+</Window>
