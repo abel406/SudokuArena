@@ -8,6 +8,7 @@
     <Project Path="src/SudokuArena.Sync.Worker/SudokuArena.Sync.Worker.csproj" />
   </Folder>
   <Folder Name="/test/">
+    <Project Path="test/SudokuArena.Application.Tests/SudokuArena.Application.Tests.csproj" />
     <Project Path="test/SudokuArena.Domain.Tests/SudokuArena.Domain.Tests.csproj" />
   </Folder>
 </Solution>
