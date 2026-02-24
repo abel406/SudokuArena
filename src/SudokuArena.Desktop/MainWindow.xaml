@@ -7,10 +7,10 @@
         mc:Ignorable="d"
         Background="{StaticResource CanvasBackgroundBrush}"
         Title="Sudoku Arena"
-        Height="760"
-        Width="1220"
-        MinWidth="980"
-        MinHeight="640">
+        Height="820"
+        Width="1280"
+        MinWidth="1040"
+        MinHeight="700">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -18,7 +18,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2.3*" />
+            <ColumnDefinition Width="2.35*" />
             <ColumnDefinition Width="1*" />
         </Grid.ColumnDefinitions>
 
@@ -44,11 +44,149 @@
                 Padding="16"
                 CornerRadius="14"
                 Background="{StaticResource SurfaceBrush}">
-            <controls:SudokuBoardControl x:Name="BoardControl"
-                                         Focusable="True"
-                                         Cells="{Binding Cells}"
-                                         GivenCells="{Binding GivenCells}"
-                                         SelectedIndex="{Binding SelectedCell, Mode=TwoWay}" />
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="8,0,8,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="{Binding ErrorSummary}"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource TextBrush}"
+                               FontWeight="SemiBold" />
+
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding Score, StringFormat=Puntaje: {0}}"
+                                   HorizontalAlignment="Center"
+                                   FontWeight="Bold"
+                                   FontSize="23"
+                                   Foreground="{StaticResource PrimaryBrush}" />
+                        <TextBlock Text="{Binding DifficultyLabel}"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{StaticResource TextBrush}" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding ElapsedTimeText}"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource TextBrush}"
+                               FontWeight="SemiBold" />
+                </Grid>
+
+                <controls:SudokuBoardControl x:Name="BoardControl"
+                                             Grid.Row="1"
+                                             Focusable="True"
+                                             Cells="{Binding Cells}"
+                                             GivenCells="{Binding GivenCells}"
+                                             InvalidCells="{Binding InvalidCells}"
+                                             SelectedNumber="{Binding SelectedNumber}"
+                                             SelectedIndex="{Binding SelectedCell, Mode=TwoWay}" />
+
+                <Grid Grid.Row="2" Margin="0,14,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0"
+                            Content="Deshacer"
+                            Command="{Binding UndoMoveCommand}"
+                            Margin="4,0,4,0" />
+
+                    <Button Grid.Column="1"
+                            Content="Borrar"
+                            Command="{Binding ClearSelectedCellCommand}"
+                            Margin="4,0,4,0" />
+
+                    <ToggleButton Grid.Column="2"
+                                  Margin="4,0,4,0"
+                                  Padding="12,8"
+                                  IsChecked="{Binding AutoCompleteEnabled, Mode=TwoWay}"
+                                  Foreground="White"
+                                  FontWeight="SemiBold"
+                                  BorderThickness="0">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton">
+                                <Setter Property="Content" Value="Autocompletado: OFF" />
+                                <Setter Property="Background" Value="#9EA3AD" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter Property="Content" Value="Autocompletado: ON" />
+                                        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
+                </Grid>
+
+                <ItemsControl Grid.Row="3"
+                              Margin="0,12,0,0"
+                              ItemsSource="{Binding NumberOptions}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1" Columns="9" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Command="{Binding DataContext.SelectNumberCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding Number}"
+                                    Margin="4,0,4,0"
+                                    Padding="8,7"
+                                    Foreground="#3867B7"
+                                    FontWeight="Bold"
+                                    BorderThickness="1">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="#FAFAFD" />
+                                        <Setter Property="BorderBrush" Value="#D5DAE5" />
+                                        <Setter Property="Opacity" Value="1" />
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="Background" Value="#E6EDFA" />
+                                                <Setter Property="BorderBrush" Value="#8BAFEA" />
+                                                <Setter Property="Foreground" Value="#1D54AF" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsDimmed}" Value="True">
+                                                <Setter Property="Opacity" Value="0.4" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Number}"
+                                               HorizontalAlignment="Center"
+                                               FontSize="18"
+                                               FontWeight="Bold"
+                                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" />
+                                    <TextBlock Text="{Binding RemainingCount}"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,2,0,0"
+                                               FontSize="12"
+                                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                                               Opacity="0.95" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
         </Border>
 
         <Border Grid.Row="1"
@@ -88,6 +226,6 @@
                    Grid.ColumnSpan="2"
                    Margin="0,14,0,0"
                    Foreground="{StaticResource TextBrush}"
-                   Text="Controles: click para seleccionar casilla, números 1-9 para jugar, Backspace para borrar." />
+                   Text="Controles: click izquierdo escribe, click derecho quita foco de celda, Ctrl+1..9 fija número sin escribir; Deshacer/Borrar disponibles, Autocompletado es placeholder." />
     </Grid>
 </Window>
