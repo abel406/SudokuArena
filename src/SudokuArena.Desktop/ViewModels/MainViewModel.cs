@@ -11,18 +11,28 @@ public partial class MainViewModel : ObservableObject
 
     private readonly int?[] _cells = new int?[81];
     private readonly bool[] _givens = new bool[81];
+    private readonly bool[] _editableCells = new bool[81];
     private readonly bool[] _invalidCells = new bool[81];
     private readonly Stack<MoveEntry> _moveHistory = new();
+    private IReadOnlyList<int?> _cellsView = Array.Empty<int?>();
+    private IReadOnlyList<bool> _givenCellsView = Array.Empty<bool>();
+    private IReadOnlyList<bool> _editableCellsView = Array.Empty<bool>();
+    private IReadOnlyList<bool> _invalidCellsView = Array.Empty<bool>();
     private DateTimeOffset _gameStartedUtc = DateTimeOffset.UtcNow;
     private DateTimeOffset? _clockPausedAtUtc;
     private TimeSpan _pausedClockDuration = TimeSpan.Zero;
     private bool _isDefeatDialogOpen;
 
     public MainViewModel()
+        : this(SudokuDefaults.SamplePuzzle)
+    {
+    }
+
+    public MainViewModel(string puzzle)
     {
         NumberOptions = new ObservableCollection<NumberOptionItem>(
             Enumerable.Range(1, 9).Select(x => new NumberOptionItem(x)));
-        LoadPuzzle(SudokuDefaults.SamplePuzzle);
+        LoadPuzzle(puzzle);
     }
 
     [ObservableProperty]
@@ -59,6 +69,9 @@ public partial class MainViewModel : ObservableObject
     private bool _autoCompleteEnabled;
 
     [ObservableProperty]
+    private bool _isDeleteMode;
+
+    [ObservableProperty]
     private bool _isGameFinished;
 
     [ObservableProperty]
@@ -75,11 +88,13 @@ public partial class MainViewModel : ObservableObject
 
     public event EventHandler? GameLost;
 
-    public IReadOnlyList<int?> Cells => _cells;
+    public IReadOnlyList<int?> Cells => _cellsView;
 
-    public IReadOnlyList<bool> GivenCells => _givens;
+    public IReadOnlyList<bool> GivenCells => _givenCellsView;
 
-    public IReadOnlyList<bool> InvalidCells => _invalidCells;
+    public IReadOnlyList<bool> EditableCells => _editableCellsView;
+
+    public IReadOnlyList<bool> InvalidCells => _invalidCellsView;
 
     public string ErrorSummary => $"Errores: {ErrorCount}/{ErrorLimitValue}";
 
@@ -91,6 +106,11 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedNumberChanged(int value)
     {
+        if (value is >= 1 and <= 9 && IsDeleteMode)
+        {
+            IsDeleteMode = false;
+        }
+
         UpdateNumberOptions();
         NotifyBoardChanged();
     }
@@ -114,7 +134,27 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnIsGameFinishedChanged(bool value)
     {
+        if (value && IsDeleteMode)
+        {
+            IsDeleteMode = false;
+        }
+
         UpdateActionCommandStates();
+    }
+
+    partial void OnIsDeleteModeChanged(bool value)
+    {
+        if (IsGameFinished && value)
+        {
+            IsDeleteMode = false;
+            return;
+        }
+
+        if (value)
+        {
+            SelectedNumber = 0;
+            StatusMessage = "Modo borrar activado.";
+        }
     }
 
     [RelayCommand]
@@ -185,17 +225,6 @@ public partial class MainViewModel : ObservableObject
         StatusMessage = "Ultima jugada deshecha.";
     }
 
-    [RelayCommand(CanExecute = nameof(CanClearSelectedCell))]
-    private void ClearSelectedCell()
-    {
-        if (IsGameFinished || SelectedCell is < 0 or >= 81 || _givens[SelectedCell])
-        {
-            return;
-        }
-
-        ApplyCellEdit(SelectedCell, null, saveHistory: true);
-    }
-
     [RelayCommand]
     private void ToggleAutoComplete()
     {
@@ -260,10 +289,26 @@ public partial class MainViewModel : ObservableObject
 
         SelectedCell = index;
 
-        if (SelectedNumber is >= 1 and <= 9 && !_givens[index])
+        if (IsDeleteMode)
+        {
+            return;
+        }
+
+        if (SelectedNumber is >= 1 and <= 9 && IsCellEditable(index))
         {
             ApplyCellEdit(index, SelectedNumber, saveHistory: true);
         }
+    }
+
+    public void DeleteCellFromTool(int index)
+    {
+        if (IsGameFinished || index is < 0 or >= 81)
+        {
+            return;
+        }
+
+        SelectedCell = index;
+        ApplyCellEdit(index, null, saveHistory: true);
     }
 
     public void ApplyCellEdit(int index, int? value, bool saveHistory = true)
@@ -273,7 +318,7 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        if (_givens[index])
+        if (!IsCellEditable(index))
         {
             StatusMessage = "Las celdas fijas no se pueden modificar.";
             return;
@@ -335,14 +380,6 @@ public partial class MainViewModel : ObservableObject
 
     private bool CanUndoMove() => !IsGameFinished && _moveHistory.Count > 0;
 
-    private bool CanClearSelectedCell()
-    {
-        return !IsGameFinished
-               && SelectedCell is >= 0 and < 81
-               && !_givens[SelectedCell]
-               && _cells[SelectedCell] is not null;
-    }
-
     public void ContinueAfterDefeatWarning()
     {
         if (IsGameFinished)
@@ -379,6 +416,7 @@ public partial class MainViewModel : ObservableObject
         {
             _cells[i] = board.Cells[i];
             _givens[i] = board.Givens[i];
+            _editableCells[i] = !board.Givens[i];
             _invalidCells[i] = false;
         }
 
@@ -388,6 +426,7 @@ public partial class MainViewModel : ObservableObject
         Score = 0;
         ErrorCount = 0;
         AutoCompleteEnabled = false;
+        IsDeleteMode = false;
         IsGameFinished = false;
         IsVictory = false;
         IsAwaitingDefeatDecision = false;
@@ -474,15 +513,29 @@ public partial class MainViewModel : ObservableObject
     private void UpdateActionCommandStates()
     {
         UndoMoveCommand.NotifyCanExecuteChanged();
-        ClearSelectedCellCommand.NotifyCanExecuteChanged();
     }
 
     private void NotifyBoardChanged()
     {
+        RefreshBoardViews();
         OnPropertyChanged(nameof(Cells));
         OnPropertyChanged(nameof(GivenCells));
+        OnPropertyChanged(nameof(EditableCells));
         OnPropertyChanged(nameof(InvalidCells));
         OnPropertyChanged(nameof(SelectedNumber));
+    }
+
+    private void RefreshBoardViews()
+    {
+        _cellsView = _cells.ToArray();
+        _givenCellsView = _givens.ToArray();
+        _editableCellsView = _editableCells.ToArray();
+        _invalidCellsView = _invalidCells.ToArray();
+    }
+
+    private bool IsCellEditable(int index)
+    {
+        return index is >= 0 and < 81 && _editableCells[index];
     }
 
     private void TriggerDefeatThresholdIfNeeded()

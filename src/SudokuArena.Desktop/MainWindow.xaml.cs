@@ -52,6 +52,18 @@ public partial class MainWindow : Window
 
     private void OnBoardCellSelected(object? sender, int selectedCell)
     {
+        if (selectedCell == -1)
+        {
+            _viewModel.SelectCell(-1);
+            return;
+        }
+
+        if (_viewModel.IsDeleteMode)
+        {
+            _viewModel.DeleteCellFromTool(selectedCell);
+            return;
+        }
+
         _viewModel.SelectCell(selectedCell);
     }
 

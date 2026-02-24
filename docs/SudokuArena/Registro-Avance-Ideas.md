@@ -14,11 +14,14 @@ Actualizado: 2026-02-24
 - Juego Sudoku local en WPF con:
   - tablero interactivo,
   - seleccion de numero (1..9),
-  - comandos base de deshacer/borrar (pendiente definir contrato final de UX),
+  - comando `Deshacer` base (pendiente de cierre final de contrato y pruebas),
+  - modo `Borrar` estable por click en celda editable (ON/OFF), protegido por estado `given/editable`,
+  - resaltado visual ajustado: gris claro para fila/columna/3x3 y azul para celda activa + digitos coincidentes,
   - conteo de errores con limite,
   - puntaje,
   - reloj,
-  - dialogos de victoria/derrota.
+  - dialogos de victoria/derrota,
+  - pruebas Desktop para flujo de borrado (incluyendo escenario general de celdas no-given en tablero casi completo).
 - Backend base con:
   - creacion y consulta de partidas,
   - hub SignalR para movimientos,
@@ -31,7 +34,6 @@ Actualizado: 2026-02-24
 - Perfil de jugador: modelo base creado (`PlayerProfile`), sin casos de uso/API/UI persistidos de punta a punta.
 - Roles: existe gate temporal por `X-Role`, falta autenticacion/autorizacion real.
 - Autocompletado: existe toggle en UI, falta logica funcional.
-- Reglas visuales de resaltado: avanzadas, aun por pulir fino contra comportamiento objetivo final.
 
 ## Pendiente
 - Definir contrato funcional de `Deshacer`:
@@ -40,13 +42,6 @@ Actualizado: 2026-02-24
   - incluir alta/modificacion/borrado de celdas de usuario como jugadas deshacibles,
   - no permitir afectar celdas originales del puzzle,
   - cubrir con pruebas unitarias de historial y limites.
-- Definir contrato funcional de `Borrar` (modo herramienta):
-  - activar modo borrar explicito desde boton,
-  - en modo borrar, click sobre celda editable elimina su valor,
-  - celdas originales del puzzle nunca se borran,
-  - el modo borrar permanece activo hasta seleccionar un nuevo numero,
-  - al seleccionar numero se vuelve automaticamente a modo escritura,
-  - cubrir con pruebas de transicion de modos y restricciones de celdas fijas.
 - Torneos completos: creacion, registro, bracket, emparejamiento, avance y cierre.
 - Sistema ELO/ranking, niveles, estrellas y escudos.
 - Login real con Google (Gmail) + emision y validacion de JWT.

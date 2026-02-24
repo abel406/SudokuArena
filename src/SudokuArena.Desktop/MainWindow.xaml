@@ -104,10 +104,26 @@
                             Command="{Binding UndoMoveCommand}"
                             Margin="4,0,4,0" />
 
-                    <Button Grid.Column="1"
-                            Content="Borrar"
-                            Command="{Binding ClearSelectedCellCommand}"
-                            Margin="4,0,4,0" />
+                    <ToggleButton Grid.Column="1"
+                                  Margin="4,0,4,0"
+                                  Padding="12,8"
+                                  IsChecked="{Binding IsDeleteMode, Mode=TwoWay}"
+                                  Foreground="White"
+                                  FontWeight="SemiBold"
+                                  BorderThickness="0">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton">
+                                <Setter Property="Content" Value="Borrar: OFF" />
+                                <Setter Property="Background" Value="#9EA3AD" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter Property="Content" Value="Borrar: ON" />
+                                        <Setter Property="Background" Value="#C84A4A" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
 
                     <ToggleButton Grid.Column="2"
                                   Margin="4,0,4,0"
@@ -226,6 +242,6 @@
                    Grid.ColumnSpan="2"
                    Margin="0,14,0,0"
                    Foreground="{StaticResource TextBrush}"
-                   Text="Controles: click izquierdo escribe, click derecho quita foco de celda, Ctrl+1..9 fija número sin escribir; Deshacer/Borrar disponibles, Autocompletado es placeholder." />
+                   Text="Controles: click izquierdo escribe, click derecho quita foco de celda, Ctrl+1..9 fija número sin escribir; Borrar funciona como modo herramienta, Autocompletado es placeholder." />
     </Grid>
 </Window>

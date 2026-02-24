@@ -7,8 +7,8 @@ namespace SudokuArena.Desktop.Controls;
 
 public sealed class SudokuBoardControl : FrameworkElement
 {
-    private static readonly Color SelectionColor = Color.FromArgb(68, 139, 176, 237);
-    private static readonly Color CurrentCellColor = Color.FromArgb(96, 139, 176, 237);
+    private static readonly Color StructureHighlightColor = Color.FromArgb(86, 216, 220, 226);
+    private static readonly Color AccentHighlightColor = Color.FromArgb(96, 139, 176, 237);
 
     public static readonly DependencyProperty CellsProperty = DependencyProperty.Register(
         nameof(Cells),
@@ -83,11 +83,9 @@ public sealed class SudokuBoardControl : FrameworkElement
         var size = Math.Min(ActualWidth, ActualHeight);
         var cell = size / 9d;
         var boardRect = new Rect(0, 0, size, size);
-        var selectionBrush = new SolidColorBrush(SelectionColor);
+        var structureHighlightBrush = new SolidColorBrush(StructureHighlightColor);
 
         dc.DrawRectangle(Brushes.White, null, boardRect);
-
-        DrawSelectedNumberHighlights(dc, cell);
 
         if (SelectedIndex is >= 0 and < 81)
         {
@@ -98,12 +96,19 @@ public sealed class SudokuBoardControl : FrameworkElement
             var rowHighlight = new Rect(0, selectedRow * cell, size, cell);
             var colHighlight = new Rect(selectedCol * cell, 0, cell, size);
             var boxHighlight = new Rect(boxStartCol * cell, boxStartRow * cell, 3 * cell, 3 * cell);
-            dc.DrawRectangle(selectionBrush, null, rowHighlight);
-            dc.DrawRectangle(selectionBrush, null, colHighlight);
-            dc.DrawRectangle(selectionBrush, null, boxHighlight);
+            dc.DrawRectangle(structureHighlightBrush, null, rowHighlight);
+            dc.DrawRectangle(structureHighlightBrush, null, colHighlight);
+            dc.DrawRectangle(structureHighlightBrush, null, boxHighlight);
+        }
 
+        DrawSelectedNumberHighlights(dc, cell);
+
+        if (SelectedIndex is >= 0 and < 81)
+        {
+            var selectedRow = SelectedIndex / 9;
+            var selectedCol = SelectedIndex % 9;
             var highlight = new Rect(selectedCol * cell, selectedRow * cell, cell, cell);
-            dc.DrawRectangle(new SolidColorBrush(CurrentCellColor), null, highlight);
+            dc.DrawRectangle(new SolidColorBrush(AccentHighlightColor), null, highlight);
         }
 
         DrawGrid(dc, size, cell);
@@ -143,8 +148,11 @@ public sealed class SudokuBoardControl : FrameworkElement
 
         var col = (int)(point.X / cellSize);
         var row = (int)(point.Y / cellSize);
-        SelectedIndex = (row * 9) + col;
-        CellSelected?.Invoke(this, SelectedIndex);
+        var clickedIndex = (row * 9) + col;
+        SelectedIndex = clickedIndex;
+
+        CellSelected?.Invoke(this, clickedIndex);
+        e.Handled = true;
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -266,14 +274,6 @@ public sealed class SudokuBoardControl : FrameworkElement
             return;
         }
 
-        var targetGrid = -1;
-        if (SelectedIndex is >= 0 and < 81)
-        {
-            var selectedRow = SelectedIndex / 9;
-            var selectedCol = SelectedIndex % 9;
-            targetGrid = ((selectedRow / 3) * 3) + (selectedCol / 3);
-        }
-
         for (var i = 0; i < 81; i++)
         {
             if (cells[i] != SelectedNumber)
@@ -281,21 +281,10 @@ public sealed class SudokuBoardControl : FrameworkElement
                 continue;
             }
 
-            if (targetGrid >= 0)
-            {
-                var cellRow = i / 9;
-                var cellCol = i % 9;
-                var grid = ((cellRow / 3) * 3) + (cellCol / 3);
-                if (grid != targetGrid)
-                {
-                    continue;
-                }
-            }
-
             var row = i / 9;
             var col = i % 9;
             dc.DrawRectangle(
-                new SolidColorBrush(SelectionColor),
+                new SolidColorBrush(AccentHighlightColor),
                 null,
                 new Rect(col * cell, row * cell, cell, cell));
         }
