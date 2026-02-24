@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SudokuArena.Application.Abstractions.Repositories;
@@ -22,6 +23,7 @@ public static class ServiceCollectionExtensions
         {
             // For this skeleton we keep SQLite as default provider in every profile.
             // Cloud sync is handled through the outbox worker and cloud API.
+            EnsureSqliteDirectoryExists(options.LocalSqliteConnectionString);
             builder.UseSqlite(options.LocalSqliteConnectionString);
         });
 
@@ -29,5 +31,21 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOutboxRepository, OutboxRepository>();
 
         return services;
+    }
+
+    private static void EnsureSqliteDirectoryExists(string connectionString)
+    {
+        var sqliteBuilder = new SqliteConnectionStringBuilder(connectionString);
+        if (string.IsNullOrWhiteSpace(sqliteBuilder.DataSource) || sqliteBuilder.DataSource == ":memory:")
+        {
+            return;
+        }
+
+        var fullPath = Path.GetFullPath(sqliteBuilder.DataSource);
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
     }
 }

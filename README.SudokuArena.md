@@ -8,15 +8,54 @@
 - `src/SudokuArena.Application`: use cases
 - `src/SudokuArena.Infrastructure`: EF Core + repositories
 
-## Build
+## Quick Start (Recommended)
+Run everything with one script:
+
 ```powershell
-dotnet restore SudokuArena.slnx --ignore-failed-sources
-dotnet build SudokuArena.slnx --no-restore
+pwsh -ExecutionPolicy Bypass -File .\scripts\run-local.ps1
 ```
 
-## Run local LAN demo
+What this does:
+- Restore packages
+- Build solution
+- Run tests
+- Start server (`http://localhost:5055`)
+- Start WPF desktop app
+
+When you close the desktop app, the server process is stopped automatically.
+
+### Script options
 ```powershell
-dotnet run --project src/SudokuArena.Server
+# Start only server
+pwsh -ExecutionPolicy Bypass -File .\scripts\run-local.ps1 -ServerOnly
+
+# Skip restore/build/tests if already done
+pwsh -ExecutionPolicy Bypass -File .\scripts\run-local.ps1 -SkipRestore -SkipBuild -SkipTests
+
+# Custom server URL
+pwsh -ExecutionPolicy Bypass -File .\scripts\run-local.ps1 -ServerUrl http://localhost:6060
+```
+
+## Manual Steps
+```powershell
+dotnet restore SudokuArena.slnx
+dotnet build SudokuArena.slnx --no-restore
+dotnet test SudokuArena.slnx --no-build
+```
+
+Start server:
+```powershell
+dotnet run --project src/SudokuArena.Server --urls http://localhost:5055
+```
+
+Basic API smoke test:
+```powershell
+curl.exe -s http://localhost:5055/api/health
+curl.exe -s -X POST http://localhost:5055/api/matches -H "Content-Type: application/json" -d "{\"hostPlayer\":\"p1@gmail.com\",\"guestPlayer\":\"p2@gmail.com\",\"transport\":0}"
+```
+
+Start desktop:
+```powershell
 dotnet run --project src/SudokuArena.Desktop
 ```
 

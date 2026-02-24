@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# SudokuArena local runtime artifacts
+*.db
+*.db-shm
+*.db-wal
+**/data/
