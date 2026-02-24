@@ -1,0 +1,68 @@
+<Window x:Class="SudokuArena.Desktop.Dialogs.VictoryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Victoria"
+        Width="500"
+        Height="360"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource CanvasBackgroundBrush}">
+    <Window.Resources>
+        <DrawingImage x:Key="CelebrationImage">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#1C6E8C" Geometry="M 44,10 L 58,38 L 90,43 L 66,64 L 72,96 L 44,80 L 16,96 L 22,64 L -2,43 L 30,38 Z" />
+                    <GeometryDrawing Brush="#E07A5F" Geometry="M 130,18 L 138,34 L 156,36 L 142,50 L 146,68 L 130,58 L 114,68 L 118,50 L 104,36 L 122,34 Z" />
+                    <GeometryDrawing Brush="#2D3142" Geometry="M 94,84 L 102,100 L 120,102 L 106,116 L 110,134 L 94,124 L 78,134 L 82,116 L 68,102 L 86,100 Z" />
+                    <GeometryDrawing Brush="#E07A5F" Geometry="M 12,112 L 18,124 L 32,126 L 22,136 L 25,150 L 12,142 L -1,150 L 2,136 L -8,126 L 6,124 Z" />
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+    </Window.Resources>
+    <Border Margin="20"
+            Padding="20"
+            CornerRadius="12"
+            Background="{StaticResource SurfaceBrush}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="VICTORIA"
+                       FontSize="30"
+                       FontWeight="Bold"
+                       Foreground="{StaticResource PrimaryBrush}"
+                       HorizontalAlignment="Center" />
+
+            <StackPanel Grid.Row="1"
+                        Margin="0,10,0,8"
+                        HorizontalAlignment="Center">
+                <TextBlock Text="{Binding ScoreText}"
+                           FontSize="23"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource AccentBrush}"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding DifficultyText}"
+                           FontSize="15"
+                           Foreground="{StaticResource TextBrush}"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <Image Grid.Row="2"
+                   Width="170"
+                   Height="170"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Source="{StaticResource CelebrationImage}" />
+
+            <Button Grid.Row="3"
+                    Content="Continuar"
+                    Width="150"
+                    HorizontalAlignment="Center"
+                    Click="OnContinueClicked" />
+        </Grid>
+    </Border>
+</Window>
