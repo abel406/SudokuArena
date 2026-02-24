@@ -62,6 +62,7 @@ dotnet run --project src/SudokuArena.Desktop
 ## Docs
 - `docs/SudokuArena/Architecture.md`
 - `docs/SudokuArena/Deployment.md`
+- `docs/SudokuArena/Registro-Avance-Ideas.md`
 
 ## Theme and Media Management API (Phase 1)
 Role header (temporary auth placeholder):
