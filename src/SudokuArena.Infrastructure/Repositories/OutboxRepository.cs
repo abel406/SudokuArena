@@ -22,12 +22,15 @@ public sealed class OutboxRepository(SudokuArenaDbContext dbContext) : IOutboxRe
 
     public async Task<IReadOnlyList<OutboxEvent>> DequeuePendingAsync(int take, CancellationToken cancellationToken)
     {
-        return await dbContext.OutboxEvents
+        var pending = await dbContext.OutboxEvents
             .Where(x => x.SyncedUtc == null)
-            .OrderBy(x => x.CreatedUtc)
             .Take(take)
-            .Select(x => new OutboxEvent(x.Id, x.EventType, x.Payload, x.CreatedUtc))
             .ToListAsync(cancellationToken);
+
+        return pending
+            .OrderBy(x => x.CreatedUtc)
+            .Select(x => new OutboxEvent(x.Id, x.EventType, x.Payload, x.CreatedUtc))
+            .ToList();
     }
 
     public async Task MarkAsSyncedAsync(Guid eventId, CancellationToken cancellationToken)

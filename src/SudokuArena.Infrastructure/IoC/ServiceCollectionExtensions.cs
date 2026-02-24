@@ -3,9 +3,11 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SudokuArena.Application.Abstractions.Repositories;
+using SudokuArena.Application.Abstractions.Storage;
 using SudokuArena.Infrastructure.Configuration;
 using SudokuArena.Infrastructure.Persistence;
 using SudokuArena.Infrastructure.Repositories;
+using SudokuArena.Infrastructure.Storage;
 
 namespace SudokuArena.Infrastructure.IoC;
 
@@ -17,8 +19,11 @@ public static class ServiceCollectionExtensions
     {
         var options = new DataStoreOptions();
         configuration.GetSection(DataStoreOptions.SectionName).Bind(options);
+        var mediaOptions = new MediaStorageOptions();
+        configuration.GetSection(MediaStorageOptions.SectionName).Bind(mediaOptions);
 
         services.AddSingleton(options);
+        services.AddSingleton(mediaOptions);
         services.AddDbContext<SudokuArenaDbContext>(builder =>
         {
             // For this skeleton we keep SQLite as default provider in every profile.
@@ -29,6 +34,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<IOutboxRepository, OutboxRepository>();
+        services.AddScoped<IThemeRepository, ThemeRepository>();
+        services.AddScoped<IMediaAssetRepository, MediaAssetRepository>();
+        services.AddScoped<IMediaBinaryStorage, FileSystemMediaBinaryStorage>();
 
         return services;
     }
