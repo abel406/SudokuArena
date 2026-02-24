@@ -367,3 +367,5 @@ FodyWeavers.xsd
 *.db-shm
 *.db-wal
 **/data/
+**/media/
+**/media-dev/

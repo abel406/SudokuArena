@@ -41,6 +41,18 @@ This structure keeps UI and transport swappable without rewriting game logic.
 - Server is authoritative for move validation.
 - Clients render board state sent by server events.
 
+## Theme/media strategy
+- Centralized theme management on server with `ThemeManifest`:
+  - token dictionary (`color.*`, `font.*`, etc.)
+  - asset dictionary (`bg.*`, `icon.*`, etc.)
+- Local media file storage (phase 1) exposed via `/api/media/{id}`.
+- Admin endpoints allow:
+  - create/update themes
+  - activate single current theme
+  - upload and list media assets
+- Role gate (temporary): `X-Role` header (`Admin`, `Moderator`).
+- Planned hardening: OAuth/JWT + policy-based authorization.
+
 ## Auth strategy (next step)
 - LAN-only: local profile without external auth.
 - Cloud mode: `Google OAuth` (Gmail) -> backend issues app JWT.

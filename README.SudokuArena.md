@@ -62,3 +62,26 @@ dotnet run --project src/SudokuArena.Desktop
 ## Docs
 - `docs/SudokuArena/Architecture.md`
 - `docs/SudokuArena/Deployment.md`
+
+## Theme and Media Management API (Phase 1)
+Role header (temporary auth placeholder):
+- `X-Role: Admin` or `X-Role: Moderator`
+
+Public endpoints:
+- `GET /api/themes/active`
+- `GET /api/media/{mediaId}`
+
+Admin endpoints:
+- `GET /api/admin/themes`
+- `POST /api/admin/themes`
+- `POST /api/admin/themes/{themeId}/activate` (Admin only)
+- `GET /api/admin/media`
+- `POST /api/admin/media/upload` (`multipart/form-data`, file field: `file`)
+
+Example create theme:
+```powershell
+curl.exe -s -X POST http://localhost:5055/api/admin/themes `
+  -H "Content-Type: application/json" `
+  -H "X-Role: Admin" `
+  -d "{\"themeId\":null,\"code\":\"halloween-2026\",\"name\":\"Halloween 2026\",\"baseVersion\":null,\"isPublished\":true,\"priority\":50,\"validFromUtc\":null,\"validToUtc\":null,\"tokens\":{\"color.primary\":\"#ff6a00\"},\"assets\":{\"bg.main\":\"/api/media/placeholder\"}}"
+```
