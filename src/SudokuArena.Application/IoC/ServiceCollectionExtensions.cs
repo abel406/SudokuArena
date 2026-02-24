@@ -9,6 +9,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddSudokuArenaApplication(this IServiceCollection services)
     {
         services.AddScoped<IMatchService, MatchService>();
+        services.AddScoped<IThemeService, ThemeService>();
+        services.AddScoped<IMediaAssetService, MediaAssetService>();
         return services;
     }
 }
