@@ -1,11 +1,14 @@
+using System.IO;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SudokuArena.Application.IoC;
+using SudokuArena.Application.Puzzles;
 using SudokuArena.Desktop.Theming;
 using SudokuArena.Desktop.ViewModels;
 using SudokuArena.Infrastructure.IoC;
 using SudokuArena.Infrastructure.Persistence;
+using SudokuArena.Infrastructure.Puzzles;
 using DesktopThemeMode = SudokuArena.Desktop.Theming.ThemeMode;
 
 namespace SudokuArena.Desktop;
@@ -25,6 +28,15 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<ISystemThemeDetector, WindowsThemeDetector>();
                 services.AddSingleton<IThemePreferenceStore, JsonThemePreferenceStore>();
                 services.AddSingleton<ThemeManager>();
+                services.AddSingleton<IPuzzleProvider>(_ =>
+                {
+                    var localSeedPath = Path.Combine(AppContext.BaseDirectory, "PuzzleSeed", "puzzles.runtime.v1.json");
+                    var serverSeedPath = Path.Combine(AppContext.BaseDirectory, "ServerSeed", "puzzles.runtime.v1.json");
+
+                    var serverSource = new ServerSeedPuzzleProvider(serverSeedPath, required: false);
+                    var localSource = new LocalSeedPuzzleProvider(localSeedPath);
+                    return new CompositePuzzleProvider(serverSource, localSource);
+                });
                 services.AddSingleton<MainViewModel>();
                 services.AddSingleton<MainWindow>();
             })
