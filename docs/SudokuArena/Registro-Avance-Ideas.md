@@ -39,6 +39,7 @@ Actualizado: 2026-02-25
   - mapa de formatos de bancos (`defaultQb*`, `question_time_map`, `rank_active_question`) ya documentado para diseno de dataset propio,
   - escala de dificultad calibrada con percentiles reales (`weighted_se`, `max_rate`, `advanced_hits`) y umbrales recomendados de 6 tiers,
   - pendiente aterrizar propuesta final para backend LAN/offline+sync.
+- Matriz tecnica de implementacion creada en `docs/SudokuArena/Matriz-Tecnica-Referencia-SudokuArena.md` (feature -> dato -> fuente -> implementacion en SudokuArena), lista para convertir filas en tareas.
 - Desktop con modos LAN/Cloud: existe UI y comandos, falta conexion real completa a hub/API en flujo de partida.
 - Perfil de jugador: modelo base creado (`PlayerProfile`), sin casos de uso/API/UI persistidos de punta a punta.
 - Roles: existe gate temporal por `X-Role`, falta autenticacion/autorizacion real.
@@ -84,6 +85,60 @@ Orden recomendado de ejecucion del feature:
 4. `DS-04`
 5. `DS-05`
 6. `DS-06`
+
+### Feature: UI Theme + Resaltado + Animaciones de Completado
+
+| ID | Tarea | Prioridad | Estado | Nota |
+|---|---|---|---|---|
+| UI-01 | Auditar flujo de tema activo (System/Light/Dark) y fallback en Desktop | Alta | Completada | Implementado: `ThemeMode`, detector sistema, `ThemeManager`, selector UI y persistencia local de preferencia (`desktop-settings.json`). |
+| UI-02 | Definir paleta semantica propia de tablero (`BoardThemePalette`) | Alta | Completada | Implementado: paleta semantica + resource keys + consumo en `SudokuBoardControl` + ajuste de tokens/contraste para Light/Dark. |
+| UI-03 | Crear recursos para temas claro/oscuro con `DynamicResource` | Alta | Planificada | Salida minima: `ResourceDictionary` Light y Dark conectados a un selector de tema sin reiniciar app. |
+| UI-04 | Normalizar reglas de prioridad de resaltado | Alta | Planificada | Salida minima: precedencia unica (`Conflict > Active > MatchingDigit > RelatedGroup > Normal`) documentada y cubierta por tests. |
+| UI-05 | Ajustar colores de resaltado segun criterio del proyecto | Alta | Planificada | Salida minima: fila/columna/3x3 en gris claro; solo celda activa y digitos coincidentes en azul. |
+| UI-06 | Implementar animacion de completado por fila/columna/3x3 | Alta | Planificada | Salida minima: onda radial desde celda editada cuando se complete fila, columna o cuadro. |
+| UI-07 | Soportar animacion combinada (fila+columna, fila+3x3, etc.) | Alta | Planificada | Salida minima: union de celdas objetivo en el mismo ciclo de animacion, sin duplicados ni parpadeo. |
+| UI-08 | Agregar setting `CompletionAnimation` y respetar preferencia | Media | Planificada | Salida minima: toggle ON/OFF persistido y aplicado en runtime. |
+| UI-09 | Agregar setting `ThemeMode` (`System/Light/Dark`) | Media | Planificada | Salida minima: persistencia local y aplicacion inmediata al cambiar. |
+| UI-10 | Pruebas unitarias de resaltado por estado y prioridad | Alta | Planificada | Salida minima: suite de tests para casos de seleccion, coincidencia, conflicto y combinaciones. |
+| UI-11 | Pruebas de integracion de tema claro/oscuro y contraste | Media | Propuesta | Salida minima: validacion automatizada de colores esperados por estado en ambos temas. |
+| UI-12 | Pruebas de animacion de completado (incluyendo combinadas) | Media | Propuesta | Salida minima: verificacion de disparo correcto de flags `rowDone/colDone/boxDone` y rendering estable. |
+
+Orden recomendado de ejecucion del feature:
+1. `UI-01`
+2. `UI-02`
+3. `UI-03`
+4. `UI-04`
+5. `UI-05`
+6. `UI-06`
+7. `UI-07`
+8. `UI-08`
+9. `UI-09`
+10. `UI-10`
+11. `UI-11`
+12. `UI-12`
+
+Agrupacion por fase:
+1. Fase A - Fundacion de tema y paleta: `UI-01`, `UI-02`, `UI-03`.
+2. Fase B - Reglas visuales de resaltado: `UI-04`, `UI-05`.
+3. Fase C - Animaciones de completado: `UI-06`, `UI-07`, `UI-08`.
+4. Fase D - Configuracion de experiencia: `UI-09`.
+5. Fase E - Calidad y regresion: `UI-10`, `UI-11`, `UI-12`.
+
+Subtareas tecnicas iniciales (UI-01/UI-02):
+
+- `UI-01.1` `src/SudokuArena.Desktop/Theming/ThemeMode.cs`: enum `System/Light/Dark`.
+- `UI-01.2` `src/SudokuArena.Desktop/Theming/WindowsThemeDetector.cs`: resolver tema del sistema + fallback robusto a Light.
+- `UI-01.3` `src/SudokuArena.Desktop/Theming/ThemeManager.cs`: aplicar tema efectivo en runtime (`System` -> resolver claro/oscuro).
+- `UI-01.4` `src/SudokuArena.Desktop/App.xaml` y `App.xaml.cs`: migrar a `ResourceDictionary` fusionados y aplicar tema inicial en arranque.
+- `UI-01.5` `src/SudokuArena.Desktop/ViewModels/MainViewModel.cs`: exponer `ThemeMode` y comando para cambiarlo.
+- `UI-01.6` `src/SudokuArena.Desktop/MainWindow.xaml`: agregar selector de tema (`System/Claro/Oscuro`) enlazado al VM.
+- `UI-01.7` `test/SudokuArena.Desktop.Tests/ThemeManagerTests.cs`: tests de fallback y seleccion de tema efectivo.
+
+- `UI-02.1` `src/SudokuArena.Desktop/Theming/BoardThemePalette.cs`: clase de paleta semantica (active, matching, related, conflict, lineas, textos).
+- `UI-02.2` `src/SudokuArena.Desktop/Theming/ThemeResourceKeys.cs`: claves unificadas para evitar strings duplicados.
+- `UI-02.3` `src/SudokuArena.Desktop/Themes/Theme.Light.xaml`: tokens y brushes de paleta Light.
+- `UI-02.4` `src/SudokuArena.Desktop/Themes/Theme.Dark.xaml`: tokens y brushes de paleta Dark.
+- `UI-02.5` `src/SudokuArena.Desktop/Controls/SudokuBoardControl.cs`: reemplazar colores hardcodeados por lectura de brushes semanticos.
 
 ## Proxima Ola Recomendada
 1. Conectar desktop realmente a server (SignalR + API) y definir flujo LAN de punta a punta.
