@@ -168,6 +168,113 @@ Plan de ejecucion previo (UI-06/UI-07/UI-08):
 - `UI-13.4` `test/SudokuArena.Desktop.Tests/CompletionAnimationPlannerTests.cs`: validar mapeo de distancias para onda global (centro/esquina).
 - Criterio de aceptacion: al completar puzzle, se observa animacion en todo el tablero y luego aparece el dialogo.
 
+### Feature: Inicio de Partida + Selector de Dificultad (Desktop)
+
+| ID | Tarea | Prioridad | Estado | Nota |
+|---|---|---|---|---|
+| GS-01 | Definir contrato de dificultad para runtime (`Beginner/Easy/Medium/Hard/Expert`) | Alta | Planificada | Salida minima: enum/modelo unico compartido por VM, provider y loader. |
+| GS-02 | Agregar selector de dificultad en UI de inicio/nuevo juego | Alta | Planificada | Salida minima: control en Desktop para elegir dificultad antes de `Nuevo Puzzle`. |
+| GS-03 | Conectar `Nuevo Puzzle` para usar dificultad seleccionada | Alta | Planificada | Salida minima: el comando siempre pide puzzle del tier elegido, con mensaje claro si no hay stock. |
+| GS-04 | Persistir ultima dificultad elegida en settings locales | Media | Planificada | Salida minima: al reiniciar app, la dificultad seleccionada se restaura. |
+| GS-05 | Pruebas unitarias del flujo de seleccion y comando | Alta | Planificada | Salida minima: tests para cambio de dificultad, nuevo puzzle y fallback sin datos. |
+
+Orden recomendado de ejecucion del feature:
+1. `GS-01`
+2. `GS-02`
+3. `GS-03`
+4. `GS-04`
+5. `GS-05`
+
+### Feature: Catalogo Runtime de Puzzles (Provider + JSON)
+
+| ID | Tarea | Prioridad | Estado | Nota |
+|---|---|---|---|---|
+| PC-01 | Definir contrato `PuzzleDefinition` (id, grid, solution, difficulty, metadata) | Alta | Planificada | Salida minima: tipo fuerte versionable para consumir puzzles en app. |
+| PC-02 | Definir interfaz `IPuzzleProvider` para obtener puzzle por dificultad | Alta | Planificada | Salida minima: API estable desacoplada de UI y de la fuente de datos. |
+| PC-03 | Implementar `JsonPuzzleProvider` (dataset local) | Alta | Planificada | Salida minima: carga de JSON local con validacion basica de schema y datos invalidos. |
+| PC-04 | Politica de no repeticion y fallback por dificultad | Media | Planificada | Salida minima: evita repetir puzzle inmediato; fallback controlado si tier vacio. |
+| PC-05 | Integrar provider con `MainViewModel`/`NewPuzzleCommand` | Alta | Planificada | Salida minima: Desktop deja de depender del puzzle de muestra fijo para `Nuevo Puzzle`. |
+| PC-06 | Pruebas unitarias del provider y de integracion VM | Alta | Planificada | Salida minima: tests de parseo, filtrado por dificultad y no repeticion basica. |
+
+Orden recomendado de ejecucion del feature:
+1. `PC-01`
+2. `PC-02`
+3. `PC-03`
+4. `PC-04`
+5. `PC-05`
+6. `PC-06`
+
+### Feature: Integracion con `tools/puzzle_dataset` (Pipeline de datos)
+
+| ID | Tarea | Prioridad | Estado | Nota |
+|---|---|---|---|---|
+| PD-01 | Definir esquema JSON final de consumo Desktop/Server (`schema_version`) | Alta | Planificada | Salida minima: contrato estable entre exportador y runtime. |
+| PD-02 | Agregar exportador de lote MVP para runtime (`puzzles.runtime.v1.json`) | Alta | Planificada | Salida minima: archivo por dificultad con volumen inicial util para pruebas. |
+| PD-03 | Agregar validador de dataset en CI/local | Media | Propuesta | Salida minima: comando que falle si hay puzzles invalidos o dificultades inconsistentes. |
+| PD-04 | Versionado de pesos/umbrales y trazabilidad de lote | Media | Propuesta | Salida minima: metadatos `weights_version`, `thresholds_version`, fecha y fuente del lote. |
+| PD-05 | Empalme DS->PC (provider consume salida del tooling sin cambios manuales) | Alta | Planificada | Salida minima: pipeline reproducible sin editar JSON a mano. |
+
+Orden recomendado de ejecucion del feature:
+1. `PD-01`
+2. `PD-02`
+3. `PD-05`
+4. `PD-03`
+5. `PD-04`
+
+Orden transversal recomendado (para no pisar features):
+1. `GS-01`
+2. `PC-01`
+3. `PC-02`
+4. `PC-03`
+5. `GS-02`
+6. `GS-03`
+7. `PC-04`
+8. `PC-05`
+9. `GS-04`
+10. `GS-05`
+11. `PC-06`
+12. `PD-01`
+13. `PD-02`
+14. `PD-05`
+15. `PD-03`
+16. `PD-04`
+
+Agrupacion por bloques de entrega (MVP a incremental):
+1. Bloque A - Contratos y modelos base: `GS-01`, `PC-01`, `PC-02`, `PD-01`.
+2. Bloque B - Flujo funcional en Desktop: `PC-03`, `GS-02`, `GS-03`, `PC-05`.
+3. Bloque C - Calidad de seleccion y continuidad: `PC-04`, `GS-04`, `GS-05`, `PC-06`.
+4. Bloque D - Pipeline de datos estable: `PD-02`, `PD-05`, `PD-03`, `PD-04`.
+
+Subtareas tecnicas iniciales (GS/PC/PD):
+
+- `GS-01.1` `src/SudokuArena.Domain` o `src/SudokuArena.Application`: crear enum/valor `DifficultyTier` canonico para toda la solucion.
+- `GS-01.2` `src/SudokuArena.Desktop/ViewModels/MainViewModel.cs`: exponer `SelectedDifficultyTier` y valor por defecto.
+- `GS-02.1` `src/SudokuArena.Desktop/MainWindow.xaml`: agregar selector de dificultad conectado al VM.
+- `GS-03.1` `src/SudokuArena.Desktop/ViewModels/MainViewModel.cs`: hacer que `NewPuzzleCommand` solicite puzzle por tier actual.
+- `GS-03.2` `src/SudokuArena.Desktop/MainWindow.xaml.cs` (si aplica): mostrar feedback controlado cuando no haya stock para el tier.
+- `GS-04.1` `src/SudokuArena.Desktop/Settings/DesktopSettings.cs`: persistir `SelectedDifficultyTier`.
+- `GS-04.2` `src/SudokuArena.Desktop/Settings/DesktopSettingsStore.cs`: cargar/guardar el tier junto al resto de preferencias.
+
+- `PC-01.1` `src/SudokuArena.Application/Puzzles`: definir `PuzzleDefinition` (id, puzzle, solucion, dificultad, metadata minima).
+- `PC-02.1` `src/SudokuArena.Application/Puzzles`: definir `IPuzzleProvider` con metodo `GetNext(DifficultyTier tier)`.
+- `PC-03.1` `src/SudokuArena.Infrastructure/Puzzles/JsonPuzzleProvider.cs`: implementar carga de dataset local y validacion basica.
+- `PC-03.2` `src/SudokuArena.Infrastructure/Puzzles/PuzzleDatasetModels.cs`: DTOs para deserializacion versionada (`schema_version`).
+- `PC-04.1` `src/SudokuArena.Infrastructure/Puzzles/JsonPuzzleProvider.cs`: politica anti-repeticion (ultima partida por tier).
+- `PC-05.1` `src/SudokuArena.Desktop/CompositionRoot` o bootstrap actual: registrar `IPuzzleProvider` real para Desktop.
+
+- `PD-01.1` `tools/puzzle_dataset`: definir schema runtime unico (`puzzle_dataset.v1.json`) documentado.
+- `PD-02.1` `tools/puzzle_dataset`: exportar lote inicial con distribucion minima por tiers.
+- `PD-05.1` `src/SudokuArena.Infrastructure/Puzzles/JsonPuzzleProvider.cs`: consumir schema sin transformaciones manuales.
+- `PD-03.1` `tools/puzzle_dataset` + `test/*`: comando de validacion automatica del dataset.
+- `PD-04.1` `tools/puzzle_dataset`: incluir metadatos de calibracion (`weights_version`, `thresholds_version`, `generated_at_utc`).
+
+Criterios de aceptacion integrados (flujo Nuevo Juego):
+1. Con dificultad seleccionada en UI, `Nuevo Puzzle` carga un puzzle de ese tier sin reiniciar app.
+2. Si no hay puzzles en el tier, la app aplica fallback definido y lo comunica sin bloqueo.
+3. Al reiniciar Desktop, se restaura la ultima dificultad seleccionada.
+4. El provider no repite inmediatamente el mismo puzzle en llamadas consecutivas del mismo tier.
+5. Tests de VM/provider cubren tier selection, fallback y no repeticion basica.
+
 ## Proxima Ola Recomendada
 1. Conectar desktop realmente a server (SignalR + API) y definir flujo LAN de punta a punta.
 2. Implementar perfil de jugador persistido + autenticacion real.
