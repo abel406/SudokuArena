@@ -7,6 +7,7 @@ Actualizado: 2026-02-25
 - Si una sigla deja de usarse, debe removerse de esta leyenda en el mismo cambio.
 
 ## Siglas de Features/Backlog
+- `AC`: AutoComplete (autocompletado asistido).
 - `BM`: Board Modes (modos de tablero).
 - `DS`: Dataset y Solver propio.
 - `GS`: Game Start (inicio de partida y selector de dificultad).

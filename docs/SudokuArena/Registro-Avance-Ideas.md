@@ -57,7 +57,7 @@ Leyenda de siglas del proyecto: `docs/SudokuArena/Leyenda-Siglas.md`
 - Desktop con modos LAN/Cloud: existe UI y comandos, falta conexion real completa a hub/API en flujo de partida.
 - Perfil de jugador: modelo base creado (`PlayerProfile`), sin casos de uso/API/UI persistidos de punta a punta.
 - Roles: existe gate temporal por `X-Role`, falta autenticacion/autorizacion real.
-- Autocompletado: existe toggle en UI, falta logica funcional.
+- Autocompletado: existe toggle en UI, falta logica funcional (backlog `AC-01..AC-06`).
 
 ## Pendiente
 - Definir contrato funcional de `Deshacer`:
@@ -139,6 +139,31 @@ Agrupacion por fase:
 3. Fase C - Animaciones de completado: `UI-06`, `UI-07`, `UI-13`, `UI-08`.
 4. Fase D - Configuracion de experiencia: `UI-09`.
 5. Fase E - Calidad y regresion: `UI-10`, `UI-11`, `UI-12`.
+
+### Feature: Autocompletado Asistido (Runtime + Settings)
+
+| ID | Tarea | Prioridad | Estado | Nota |
+|---|---|---|---|---|
+| AC-01 | Definir contrato funcional de autocompletado | Alta | Planificada | Salida minima: reglas documentadas de activacion, exclusiones y comportamiento esperado en juego normal. |
+| AC-02 | Implementar evaluador de oportunidad de autocompletado | Alta | Planificada | Salida minima: motor en Application/Desktop que detecta oportunidad valida (sin afectar givens ni jugadas invalidas). |
+| AC-03 | Integrar accion de autocompletado en flujo de jugada | Alta | Planificada | Salida minima: accion aplica relleno asistido en celda editable, actualiza estado de tablero y conserva compatibilidad con deshacer/puntaje. |
+| AC-04 | Conectar y respetar settings relacionados (`AutoComplete`, `AutoRemoveNotes`, `AutoNextNumber`) | Alta | Planificada | Salida minima: preferencia persistida y aplicada en runtime; comportamiento consistente entre toggles combinados. |
+| AC-05 | Agregar telemetria local de uso de autocompletado | Media | Propuesta | Salida minima: contadores de uso local (clicks/rachas) y eventos internos para diagnostico. |
+| AC-06 | Pruebas del flujo de autocompletado (unitarias + integracion VM) | Alta | Planificada | Salida minima: tests para casos habilitado/deshabilitado, sin oportunidad, con oportunidad y combinacion de settings. |
+
+Orden recomendado de ejecucion del feature:
+1. `AC-01`
+2. `AC-02`
+3. `AC-03`
+4. `AC-04`
+5. `AC-06`
+6. `AC-05`
+
+Agrupacion por fase:
+1. Fase A - Contrato y reglas: `AC-01`.
+2. Fase B - Motor de decision: `AC-02`.
+3. Fase C - Integracion de jugada y settings: `AC-03`, `AC-04`.
+4. Fase D - Calidad y observabilidad: `AC-06`, `AC-05`.
 
 Subtareas tecnicas iniciales (UI-01/UI-02):
 
@@ -282,7 +307,16 @@ Agrupacion por bloques de entrega (MVP a incremental):
 3. Bloque C - Calidad de seleccion y continuidad: `PC-04`, `GS-04`, `GS-05`, `PC-06`.
 4. Bloque D - Pipeline de datos estable: `PD-02`, `PD-05`, `PD-03`, `PD-04`.
 
-Subtareas tecnicas iniciales (GS/PC/PD):
+Subtareas tecnicas iniciales (AC/GS/PC/PD):
+
+- `AC-01.1` `docs/SudokuArena/Registro-Avance-Ideas.md` y `docs/SudokuArena/Analisis-Referencia-EasySudoku.md`: documentar contrato funcional final de autocompletado para SudokuArena.
+- `AC-02.1` `src/SudokuArena.Application` (nuevo servicio de reglas): evaluador de oportunidad de autocompletado desacoplado de UI.
+- `AC-02.2` `src/SudokuArena.Desktop/ViewModels/MainViewModel.cs`: consumir evaluador y exponer estado/accion disponible en VM.
+- `AC-03.1` `src/SudokuArena.Desktop/ViewModels/MainViewModel.cs`: comando de autocompletado que aplica jugada asistida en celda editable.
+- `AC-03.2` `src/SudokuArena.Desktop/Controls/SudokuBoardControl.cs` (si aplica): refresco visual post-autocompletado sin romper resaltado/animaciones.
+- `AC-04.1` `src/SudokuArena.Desktop/Settings/DesktopSettings.cs` y store asociado: persistir `AutoComplete` y settings relacionados del flujo asistido.
+- `AC-04.2` `src/SudokuArena.Desktop/MainWindow.xaml`: confirmar enlace de toggles al VM y coherencia de estado al iniciar app.
+- `AC-06.1` `test/SudokuArena.Desktop.Tests/*`: pruebas para toggles, evaluador y comando de autocompletado en escenarios positivos/negativos.
 
 - `GS-01.1` `src/SudokuArena.Domain` o `src/SudokuArena.Application`: crear enum/valor `DifficultyTier` canonico para toda la solucion.
 - `GS-01.2` `src/SudokuArena.Desktop/ViewModels/MainViewModel.cs`: exponer `SelectedDifficultyTier` y valor por defecto.
