@@ -2,6 +2,28 @@ namespace SudokuArena.Desktop.Animations;
 
 public static class CompletionAnimationPlanner
 {
+    public static IReadOnlyDictionary<int, int> BuildBoardWaveDistances(int originIndex)
+    {
+        if (originIndex is < 0 or >= 81)
+        {
+            return new Dictionary<int, int>();
+        }
+
+        var originRow = originIndex / 9;
+        var originCol = originIndex % 9;
+        var result = new Dictionary<int, int>(capacity: 81);
+
+        for (var index = 0; index < 81; index++)
+        {
+            var row = index / 9;
+            var col = index % 9;
+            var distance = Math.Max(Math.Abs(row - originRow), Math.Abs(col - originCol));
+            result[index] = distance;
+        }
+
+        return result;
+    }
+
     public static IReadOnlyDictionary<int, int> BuildDistances(
         int originIndex,
         bool rowCompleted,

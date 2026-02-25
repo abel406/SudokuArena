@@ -13,6 +13,9 @@ public sealed class SudokuBoardControl : FrameworkElement
     private const double CompletionDefaultMaxOpacity = 0.58d;
     private const double CompletionDefaultRingDelayMs = 85d;
     private const double CompletionDefaultPulseDurationMs = 320d;
+    private const double VictoryMaxOpacity = 0.68d;
+    private const double VictoryRingDelayMs = 65d;
+    private const double VictoryPulseDurationMs = 420d;
 
     private readonly DispatcherTimer _completionTimer = new()
     {
@@ -109,6 +112,29 @@ public sealed class SudokuBoardControl : FrameworkElement
         _completionPulseOpacity = CompletionDefaultMaxOpacity;
         _completionRingDelayMs = CompletionDefaultRingDelayMs;
         _completionPulseDurationMs = CompletionDefaultPulseDurationMs;
+        _completionDistances = distances;
+        _completionMaxDistance = distances.Values.Max();
+        _completionStartedUtc = DateTimeOffset.UtcNow;
+        if (!_completionTimer.IsEnabled)
+        {
+            _completionTimer.Start();
+        }
+
+        InvalidateVisual();
+    }
+
+    public void StartVictoryAnimation(int originIndex)
+    {
+        var safeOriginIndex = originIndex is >= 0 and < 81 ? originIndex : 40;
+        var distances = CompletionAnimationPlanner.BuildBoardWaveDistances(safeOriginIndex);
+        if (distances.Count == 0)
+        {
+            return;
+        }
+
+        _completionPulseOpacity = VictoryMaxOpacity;
+        _completionRingDelayMs = VictoryRingDelayMs;
+        _completionPulseDurationMs = VictoryPulseDurationMs;
         _completionDistances = distances;
         _completionMaxDistance = distances.Values.Max();
         _completionStartedUtc = DateTimeOffset.UtcNow;

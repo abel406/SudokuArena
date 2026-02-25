@@ -5,6 +5,29 @@ namespace SudokuArena.Desktop.Tests;
 public sealed class CompletionAnimationPlannerTests
 {
     [Fact]
+    public void BuildBoardWaveDistances_ShouldCoverAllCells_FromCenter()
+    {
+        var distances = CompletionAnimationPlanner.BuildBoardWaveDistances(40);
+
+        Assert.Equal(81, distances.Count);
+        Assert.Equal(0, distances[40]);
+        Assert.Equal(4, distances[0]);
+        Assert.Equal(4, distances[80]);
+    }
+
+    [Fact]
+    public void BuildBoardWaveDistances_ShouldUseChebyshevRings_FromCorner()
+    {
+        var distances = CompletionAnimationPlanner.BuildBoardWaveDistances(0);
+
+        Assert.Equal(81, distances.Count);
+        Assert.Equal(0, distances[0]);
+        Assert.Equal(1, distances[1]);
+        Assert.Equal(1, distances[9]);
+        Assert.Equal(8, distances[80]);
+    }
+
+    [Fact]
     public void BuildDistances_ShouldReturnEmpty_WhenNoUnitsCompleted()
     {
         var distances = CompletionAnimationPlanner.BuildDistances(40, false, false, false);

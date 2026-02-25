@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly MainViewModel _viewModel;
     private readonly ThemeManager _themeManager;
     private readonly DispatcherTimer _clockTimer;
+    private int _lastPlayedIndex = 40;
 
     public MainWindow(MainViewModel viewModel, ThemeManager themeManager)
     {
@@ -66,6 +67,8 @@ public partial class MainWindow : Window
             return;
         }
 
+        _lastPlayedIndex = selectedCell;
+
         if (_viewModel.IsDeleteMode)
         {
             _viewModel.DeleteCellFromTool(selectedCell);
@@ -77,6 +80,7 @@ public partial class MainWindow : Window
 
     private void OnBoardCellEdited(object? sender, CellEditedEventArgs e)
     {
+        _lastPlayedIndex = e.Index;
         _viewModel.ApplyCellEdit(e.Index, e.Value, saveHistory: true);
     }
 
@@ -113,10 +117,12 @@ public partial class MainWindow : Window
         _viewModel.MarkDefeatAndStop();
     }
 
-    private void OnGameWon(object? sender, EventArgs e)
+    private async void OnGameWon(object? sender, EventArgs e)
     {
         _viewModel.PauseClock();
         _clockTimer.Stop();
+        BoardControl.StartVictoryAnimation(_lastPlayedIndex);
+        await Task.Delay(700);
 
         var dialog = new VictoryWindow(_viewModel.Score, _viewModel.DifficultyLabel)
         {
