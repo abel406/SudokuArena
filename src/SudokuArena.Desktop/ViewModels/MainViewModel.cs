@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SudokuArena.Application.Puzzles;
 using SudokuArena.Desktop.Theming;
 using SudokuArena.Domain.Models;
 
@@ -56,6 +57,7 @@ public partial class MainViewModel : ObservableObject
         NumberOptions = new ObservableCollection<NumberOptionItem>(
             Enumerable.Range(1, 9).Select(x => new NumberOptionItem(x)));
         ThemeModeOptions = Enum.GetValues<ThemeMode>();
+        DifficultyTierOptions = Enum.GetValues<DifficultyTier>();
         var initialThemeMode = _themePreferenceStore?.LoadThemeMode() ?? ThemeMode.System;
         _themeMode = initialThemeMode;
         ApplyThemeSelection(initialThemeMode, persistSelection: false);
@@ -87,6 +89,9 @@ public partial class MainViewModel : ObservableObject
     private string _difficultyLabel = "Medio";
 
     [ObservableProperty]
+    private DifficultyTier _selectedDifficultyTier = DifficultyTier.Medium;
+
+    [ObservableProperty]
     private int _errorCount;
 
     [ObservableProperty]
@@ -116,6 +121,8 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<NumberOptionItem> NumberOptions { get; }
 
     public IReadOnlyList<ThemeMode> ThemeModeOptions { get; }
+
+    public IReadOnlyList<DifficultyTier> DifficultyTierOptions { get; }
 
     public event EventHandler? DefeatThresholdReached;
 
@@ -197,6 +204,19 @@ public partial class MainViewModel : ObservableObject
     partial void OnThemeModeChanged(ThemeMode value)
     {
         ApplyThemeSelection(value, persistSelection: true);
+    }
+
+    partial void OnSelectedDifficultyTierChanged(DifficultyTier value)
+    {
+        DifficultyLabel = value switch
+        {
+            DifficultyTier.Beginner => "Principiante",
+            DifficultyTier.Easy => "Facil",
+            DifficultyTier.Medium => "Medio",
+            DifficultyTier.Hard => "Dificil",
+            DifficultyTier.Expert => "Experto",
+            _ => "Medio"
+        };
     }
 
     [RelayCommand]
