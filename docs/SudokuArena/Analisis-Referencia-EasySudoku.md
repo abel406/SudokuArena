@@ -570,3 +570,153 @@ Razon tecnica:
   - `time thresholds` por puzzle (equivalente a `question_time_map`),
   - opcional: `solverDetails` por tecnica para analytics y UI de resumen.
 - Las pistas "paso a paso" no estan preguardadas en estos JSON; se derivan en runtime por motor de hints/solver.
+
+## 17) Extracto funcional solicitado (cronometro, errores, config, colores, perfil, storage, sync)
+
+### 17.1 Cronometro y tiempo de partida (confirmado)
+
+- `SudokuTime` corre tick cada segundo (`postDelayed(..., 1000L)`) y actualiza:
+  - `time`
+  - `timePeriod`
+  - `timeNoFill`
+  - `timeNoFillRight`
+- Evidencia:
+  - `sources/com/meevii/sudoku/plugin/SudokuTime.java:63`
+  - `sources/com/meevii/sudoku/plugin/SudokuTime.java:76-79`
+- Soporta estados `BEGIN/CONTINUE/PAUSE/END` y pausa/reanuda desde control.
+- Evidencia:
+  - `sources/com/meevii/sudoku/plugin/SudokuTime.java:38`
+  - `sources/com/meevii/sudoku/SudokuControl.java:630`
+- En modo `TIME_AND_MISTAKE_LIMIT_9_9` extiende limite de tiempo en +120s al alcanzar el limite.
+- Evidencia:
+  - `sources/com/meevii/sudoku/plugin/SudokuTime.java:205-206`
+
+### 17.2 Errores/mistakes (confirmado)
+
+- Estado de errores en runtime (`GameData`):
+  - `limitMistake`
+  - `mistake`
+  - `totalMistake`
+  - `mistakeCellState`
+  - `scoreTimeMap`
+- Evidencia:
+  - `sources/com/meevii/data/bean/GameData.java:200`
+  - `sources/com/meevii/data/bean/GameData.java:209`
+  - `sources/com/meevii/data/bean/GameData.java:273`
+  - `sources/com/meevii/data/bean/GameData.java:925`
+- Persistencia de mistakes al guardar/reanudar:
+  - `setMistake(...)`, `setTotalMistake(...)`, `setMistakeCellStateString(...)`.
+- Evidencia:
+  - `sources/com/meevii/sudoku/SudokuControl.java:833-834`
+  - `sources/com/meevii/sudoku/SudokuControl.java:1043-1044`
+  - `sources/com/meevii/sudoku/SudokuControl.java:1073`
+- Impacto en score:
+  - `errorScore * max(0, limitMistake - mistake)` en cierre.
+- Evidencia:
+  - `sources/com/meevii/sudoku/plugin/SudokuScore.java:160-161`
+
+### 17.3 Configuraciones de usuario (confirmado)
+
+- Toggles visibles en settings (persistidos por key):
+  - `key_mistakes_limit`
+  - `key_number_first`
+  - `key_light_mode`
+  - `key_highlight_areas`
+  - `key_highlight_identical_numbers`
+  - `key_smart_hint_enable`
+  - `key_sound_effect`
+  - `key_vibration`
+- Evidencia:
+  - `sources/com/meevii/ui/activity/SettingActivity.java:332`
+  - `sources/com/meevii/ui/activity/SettingActivity.java:712`
+  - `sources/com/meevii/ui/activity/SettingActivity.java:772`
+  - `sources/com/meevii/ui/activity/SettingActivity.java:778`
+  - `sources/com/meevii/ui/activity/SettingActivity.java:784`
+  - `sources/com/meevii/ui/activity/SettingActivity.java:796`
+  - `sources/com/meevii/ui/activity/SettingActivity.java:826`
+  - `sources/com/meevii/ui/activity/SettingActivity.java:832`
+
+### 17.4 Colores y tema del tablero (confirmado)
+
+- El tablero expone tokens de tema dedicados:
+  - `chessboardBgSelectColor`
+  - `chessboardBgSelectSameColor`
+  - `chessboardBgSelectWeakColor`
+  - `chessboardBgStrongColor`
+  - `chessboardBgErrorColor`
+  - `chessboardFgErrorColor`
+- Evidencia:
+  - `resources/res/values/attrs.xml:814-836`
+- Hay multiple presets de colores en estilos (dark/light y themes adicionales), no solo un set fijo.
+- Evidencia:
+  - `resources/res/values/styles.xml:4447-4458`
+  - `resources/res/values/styles.xml:4717-4728`
+  - `resources/res/values/styles.xml:5527-5538`
+
+### 17.5 Perfil de usuario (confirmado)
+
+- Flags de uso/edicion de perfil:
+  - `key_sp_can_edit_user_profile_date`
+  - `key_sp_use_user_profile`
+- Evidencia:
+  - `sources/ic/t0.java:1158-1159`
+- Perfil competitivo (battle):
+  - key para nombre de usuario: `key_battle_user_name`.
+- Evidencia:
+  - `sources/ic/y0.java:40`
+  - `sources/ic/y0.java:54`
+  - `sources/ic/y0.java:62`
+
+### 17.6 Informacion guardada localmente (confirmado)
+
+- SharedPreferences principal:
+  - `easy.sudoku.puzzle.solver.free.v2.playerprefs`
+- Evidencia:
+  - `sources/com/meevii/common/utils/k1.java:311`
+- DB principal local:
+  - `Sudoku.db` con migraciones acumuladas.
+- Evidencia:
+  - `sources/xf/j.java:525`
+- Tablas auxiliares adicionales detectadas:
+  - `battle_season`, `active_medal`, `tournament_season`, `favourite`.
+- Evidencia:
+  - `sources/xf/j.java:157`
+  - `sources/xf/j.java:185`
+  - `sources/xf/j.java:389`
+  - `sources/xf/j.java:358`
+- Cache JSON en `filesDir`:
+  - `abyss_active_info.json`
+  - `tournament_season_info.json`
+  - `last_tournament_season_info.json`
+- Evidencia:
+  - `sources/ic/i.java:239`, `:502`, `:951`
+  - `sources/ic/t0.java:133`, `:276`, `:592`
+
+### 17.7 Sincronizacion online (confirmado)
+
+- Endpoint de sincronizacion de progreso:
+  - `GET /sudoku/v1/user/gameData`
+  - `POST /sudoku/v1/user/gameData`
+- Evidencia:
+  - `sources/qf/a.java:22`
+  - `sources/qf/a.java:28`
+- Flujo de sync repository:
+  - descarga zip remoto `syncRemoteData.zip`
+  - descomprime a `syncData`
+  - subida con payload firmado y `gameData` serializado
+  - solicitud previa de upload firmado con `contentType` y `md5`
+- Evidencia:
+  - `sources/rf/y0.java:69`
+  - `sources/rf/y0.java:89`
+  - `sources/rf/y0.java:142-143`
+  - `sources/rf/y0.java:151`
+
+### 17.8 Implicacion directa para SudokuArena (recomendacion tecnica)
+
+- Para no perder paridad funcional minima en nuestro roadmap online:
+  - separar claramente `tiempo total` vs `tiempo entre jugadas` (equivalente a `timeNoFill/timeNoFillRight`),
+  - persistir `mistake` y `totalMistake` por partida,
+  - definir un catalogo de settings con keys estables (UI + domain + persistencia),
+  - usar tokens de color del tablero por tema (no hardcode),
+  - separar almacenamiento local en 3 capas: preferencias, base de partidas, caches efimeros,
+  - diseñar sync incremental de `gameData` + flujo de archivo snapshot para recuperacion.

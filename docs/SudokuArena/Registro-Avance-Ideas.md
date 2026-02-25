@@ -35,6 +35,7 @@ Actualizado: 2026-02-25
   - scoring avanzado (selector old/new score, coeficientes por modo, bonus por tiempo/error/perfect/fill, AB hooks battle/explore),
   - contratos DAO secundarios ya mapeados (`Dc`, `active_medal`, `battle_season`, `tournament_season`, `favourite`),
   - `defaultQbSolverDetails.json` ya descifrado y analizado completo (9369 puzzles),
+  - extracto funcional consolidado (cronometro, errores, configuraciones, colores, perfil, persistencia local y sincronizacion) en seccion 17 del analisis,
   - mapa de formatos de bancos (`defaultQb*`, `question_time_map`, `rank_active_question`) ya documentado para diseno de dataset propio,
   - escala de dificultad calibrada con percentiles reales (`weighted_se`, `max_rate`, `advanced_hits`) y umbrales recomendados de 6 tiers,
   - pendiente aterrizar propuesta final para backend LAN/offline+sync.
