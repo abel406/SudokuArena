@@ -34,8 +34,9 @@ Actualizado: 2026-02-25
   - ya extraidos contrato `GET/POST /sudoku/v1/activity` (request/response y campos parseados),
   - scoring avanzado (selector old/new score, coeficientes por modo, bonus por tiempo/error/perfect/fill, AB hooks battle/explore),
   - contratos DAO secundarios ya mapeados (`Dc`, `active_medal`, `battle_season`, `tournament_season`, `favourite`),
-  - escala de dificultad propuesta basada en solver-techniques/SE rate (con umbrales iniciales),
-  - pendiente aterrizar propuesta final para backend LAN/offline+sync y validar umbrales con dataset completo.
+  - `defaultQbSolverDetails.json` ya descifrado y analizado completo (9369 puzzles),
+  - escala de dificultad calibrada con percentiles reales (`weighted_se`, `max_rate`, `advanced_hits`) y umbrales recomendados de 6 tiers,
+  - pendiente aterrizar propuesta final para backend LAN/offline+sync.
 - Desktop con modos LAN/Cloud: existe UI y comandos, falta conexion real completa a hub/API en flujo de partida.
 - Perfil de jugador: modelo base creado (`PlayerProfile`), sin casos de uso/API/UI persistidos de punta a punta.
 - Roles: existe gate temporal por `X-Role`, falta autenticacion/autorizacion real.

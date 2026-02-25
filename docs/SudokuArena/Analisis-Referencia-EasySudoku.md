@@ -327,9 +327,8 @@ En `resources/assets/config`:
   - `sources/jc/d.java:157`, `:187-194`, `:200`
   - `sources/ic/t.java:240-243`, `:260-263`
 
-## 13) Pendientes de extraccion (vigentes)
+## 13) Pendientes de extraccion (restantes)
 
-- Validar umbrales de dificultad con muestra amplia de puzzles una vez se pueda procesar/descifrar el dataset completo de `defaultQbSolverDetails.json` fuera de runtime Android.
 - Cruzar todo esto contra nuestro backend objetivo (LAN/offline + sync) y dejar propuesta de esquema (eventos, idempotencia, reconciliacion).
 
 ## 14) Contratos DAO secundarios (confirmado)
@@ -432,11 +431,15 @@ En `resources/assets/config`:
 
 ### 15.1 Estado real del archivo `defaultQbSolverDetails.json`
 
-- El archivo de `assets/config/defaultQbSolverDetails.json` existe, pero no viene en texto plano (en repositorio decompilado se observa binario cifrado).
-- La app lo parsea en runtime con:
-  - key nativa: `DecryptionUtils.nativeGetKey(...)`
-  - AES/CBC/PKCS5Padding con IV cero
-  - deserializacion a `Map<String, Map<String, JsonElement>>`
+- Confirmado: archivo descifrado completo fuera de runtime Android.
+- Flujo confirmado:
+  - `nativeGetKey(...)` obtiene key AES en nativo (`libmeevii_native.so`),
+  - `h9.a.a(...)` hace AES/CBC/PKCS5Padding con IV en cero,
+  - resultado parsea a `Map<String, Map<String, JsonElement>>`.
+- Artefacto generado:
+  - `resources/assets/config/defaultQbSolverDetails.decrypted.json` (9369 puzzles, JSON valido).
+- Key AES recuperada del flujo nativo/firma APK:
+  - `SKpvYaOKKIz+2dpO`
 - Evidencia:
   - carga archivo: `sources/com/meevii/abtest/helper/SuccessSolutionSummaryAbTestHelper.java:145`
   - parse JSON map: `sources/com/meevii/abtest/helper/SuccessSolutionSummaryAbTestHelper.java:149`
@@ -460,32 +463,38 @@ En `resources/assets/config`:
 
 ### 15.3 Pesos/tasas por tecnica (SE rate)
 
-- Tabla base de rates (ejemplos clave):
-  - `last_free_cell=1`, `naked_single=2.3`, `naked_pair=3`, `x_wing=3.2`, `xy_wing=4.2`, `uniqueness=4.5`, `finned_jellyfish=5.8`, `xy_chain=7.5`
-- Nota: `hidden_triple`, `skyscraper`, `w_wing`, `turbot_fish` usan `Protocol.VAST_1_0_WRAPPER`, cuyo valor es `"4"`.
+- Tabla base de rates (extraida de `solutionRateMapping`):
+  - bajos: `last_free_cell=1`, `last_possible_number=1.1`, `hidden_single=1.5`
+  - intermedios: `locked_candidates_claiming=2.5`, `locked_candidates_pointing=2.6`, `x_wing=3.2`, `hidden_pair=3.4`, `swordfish=3.8`
+  - altos: `xy_wing=4.2`, `xyz_wing=4.4`, `uniqueness=4.5`, `hidden_quadruple=5.4`, `finned_jellyfish=5.8`, `xy_chain=7.5`
+- Nota: `hidden_triple`, `skyscraper`, `w_wing`, `turbot_fish` usan `Protocol.VAST_1_0_WRAPPER` (`"4"`).
 - Evidencia:
   - rates: `sources/com/meevii/abtest/helper/SuccessSolutionSummaryAbTestHelper.java:108-140`
   - constante `"4"`: `sources/net/pubnative/lite/sdk/models/Protocol.java:6`
 
-### 15.4 Propuesta de escala estable para SudokuArena (implementable ahora)
+### 15.4 Calibracion real sobre dataset completo (cerrado)
 
-Objetivo: dificultad reproducible sin depender de heuristica visual.
-
-Definicion propuesta por puzzle:
+Definicion por puzzle:
 - `weighted_se = sum( count(technique) * rate(technique) )`
 - `max_rate = max( rate(technique) con count > 0 )`
 - `advanced_hits = sum(count) de tecnicas con rate >= 4.5`
 
-Niveles sugeridos (6 tiers):
-- `Beginner`: `max_rate <= 2.3` y `weighted_se < 40`
-- `Easy`: `max_rate <= 3.0` y `weighted_se < 90`
-- `Medium`: `max_rate <= 4.0` y `weighted_se < 170`
-- `Hard`: `max_rate <= 5.0` y `weighted_se < 280`
-- `Expert`: `max_rate <= 6.0` y `weighted_se < 420`
-- `Extreme`: resto (o `max_rate > 6.0` o `advanced_hits` alto)
+Resultados sobre `9369` puzzles:
+- `weighted_se`: min `40.8`, max `197.6`, media `72.16`
+- percentiles `weighted_se`: p20 `46.4`, p40 `55.1`, p60 `74.4`, p80 `96.8`, p95 `122.4`, p99 `143.2`
+- `advanced_hits`: p95 `0`, p99 `1`
+- distribucion `max_rate` (top): `1.1(2934)`, `2.0(2884)`, `2.6(1031)`, `3.0(676)`, `4.0(612)`, `4.2(386)`, `7.5(148)`
 
-Regla de seguridad recomendada:
-- Si el puzzle contiene `xy_chain` (`rate 7.5`), forzar minimo `Expert`.
+Umbrales calibrados recomendados (6 tiers):
+- `Beginner`: `max_rate <= 2.0` y `weighted_se < 46.4`
+- `Easy`: `max_rate <= 2.6` y `weighted_se < 55.1`
+- `Medium`: `max_rate <= 3.4` y `weighted_se < 74.4`
+- `Hard`: `max_rate <= 4.2` y `weighted_se < 96.8`
+- `Expert`: `max_rate <= 5.8` y `weighted_se < 122.4`
+- `Extreme`: resto, o `xy_chain` presente, o `advanced_hits >= 2`
+
+Distribucion resultante con esos umbrales (dataset referencia):
+- `Beginner 19.34%`, `Easy 20.61%`, `Medium 19.84%`, `Hard 19.50%`, `Expert 14.99%`, `Extreme 5.72%`
 
 Razon tecnica:
-- Respeta el ranking relativo de tecnicas que ya usa la app referencia (`sortedSolverKeys` + `SE rate`) y permite calibracion incremental de umbrales con telemetria propia.
+- Respeta el ranking relativo de tecnicas (`sortedSolverKeys` + `SE rate`) y evita sesgo extremo hacia `Beginner`, dejando una distribucion util para progresion.
