@@ -720,3 +720,17 @@ Razon tecnica:
   - usar tokens de color del tablero por tema (no hardcode),
   - separar almacenamiento local en 3 capas: preferencias, base de partidas, caches efimeros,
   - diseñar sync incremental de `gameData` + flujo de archivo snapshot para recuperacion.
+
+## 18) Backlog derivado para tema/resaltado/animaciones
+
+Para implementacion en SudokuArena, el backlog operativo quedo consolidado en:
+
+- `docs/SudokuArena/Registro-Avance-Ideas.md` -> Feature: `UI Theme + Resaltado + Animaciones de Completado`
+
+Cobertura del bloque:
+
+- gestion de tema `System/Light/Dark`,
+- paleta semantica propia y tokens de estado visual,
+- reglas de prioridad de resaltado (conflicto/seleccion/coincidencia/relacionado),
+- animacion de completado para fila/columna/3x3 y combinaciones,
+- toggles de configuracion y pruebas de regresion.
