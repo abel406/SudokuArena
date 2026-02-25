@@ -26,6 +26,7 @@ public partial class MainViewModel : ObservableObject
     private bool _isDefeatDialogOpen;
     private readonly ThemeManager? _themeManager;
     private readonly IThemePreferenceStore? _themePreferenceStore;
+    private readonly IPuzzleProvider? _puzzleProvider;
 
     public MainViewModel()
         : this(SudokuDefaults.SamplePuzzle, null, null)
@@ -47,13 +48,28 @@ public partial class MainViewModel : ObservableObject
     {
     }
 
+    public MainViewModel(IPuzzleProvider puzzleProvider)
+        : this(SudokuDefaults.SamplePuzzle, null, null, puzzleProvider)
+    {
+    }
+
+    public MainViewModel(
+        ThemeManager themeManager,
+        IThemePreferenceStore themePreferenceStore,
+        IPuzzleProvider puzzleProvider)
+        : this(SudokuDefaults.SamplePuzzle, themeManager, themePreferenceStore, puzzleProvider)
+    {
+    }
+
     private MainViewModel(
         string puzzle,
         ThemeManager? themeManager,
-        IThemePreferenceStore? themePreferenceStore)
+        IThemePreferenceStore? themePreferenceStore,
+        IPuzzleProvider? puzzleProvider = null)
     {
         _themeManager = themeManager;
         _themePreferenceStore = themePreferenceStore;
+        _puzzleProvider = puzzleProvider;
         NumberOptions = new ObservableCollection<NumberOptionItem>(
             Enumerable.Range(1, 9).Select(x => new NumberOptionItem(x)));
         ThemeModeOptions = Enum.GetValues<ThemeMode>();
@@ -61,6 +77,9 @@ public partial class MainViewModel : ObservableObject
         var initialThemeMode = _themePreferenceStore?.LoadThemeMode() ?? ThemeMode.System;
         _themeMode = initialThemeMode;
         ApplyThemeSelection(initialThemeMode, persistSelection: false);
+        var initialDifficultyTier = _themePreferenceStore?.LoadDifficultyTier() ?? DifficultyTier.Medium;
+        _selectedDifficultyTier = initialDifficultyTier;
+        DifficultyLabel = ToDifficultyLabel(initialDifficultyTier);
         LoadPuzzle(puzzle);
     }
 
@@ -208,22 +227,30 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedDifficultyTierChanged(DifficultyTier value)
     {
-        DifficultyLabel = value switch
-        {
-            DifficultyTier.Beginner => "Principiante",
-            DifficultyTier.Easy => "Facil",
-            DifficultyTier.Medium => "Medio",
-            DifficultyTier.Hard => "Dificil",
-            DifficultyTier.Expert => "Experto",
-            _ => "Medio"
-        };
+        DifficultyLabel = ToDifficultyLabel(value);
+        _themePreferenceStore?.SaveDifficultyTier(value);
     }
 
     [RelayCommand]
     private void NewPuzzle()
     {
-        LoadPuzzle(SudokuDefaults.SamplePuzzle);
-        StatusMessage = "Nuevo puzzle cargado.";
+        if (_puzzleProvider is null)
+        {
+            LoadPuzzle(SudokuDefaults.SamplePuzzle);
+            StatusMessage = "Nuevo puzzle cargado (muestra local).";
+            return;
+        }
+
+        var nextPuzzle = _puzzleProvider.GetNext(SelectedDifficultyTier);
+        if (nextPuzzle is null)
+        {
+            StatusMessage = $"No hay puzzles disponibles para {ToDifficultyLabel(SelectedDifficultyTier)}.";
+            return;
+        }
+
+        LoadPuzzle(nextPuzzle.Puzzle);
+        DifficultyLabel = ToDifficultyLabel(nextPuzzle.DifficultyTier);
+        StatusMessage = $"Nuevo puzzle cargado ({DifficultyLabel}).";
     }
 
     [RelayCommand]
@@ -730,6 +757,19 @@ public partial class MainViewModel : ObservableObject
         }
 
         return mask == 1022;
+    }
+
+    private static string ToDifficultyLabel(DifficultyTier value)
+    {
+        return value switch
+        {
+            DifficultyTier.Beginner => "Principiante",
+            DifficultyTier.Easy => "Facil",
+            DifficultyTier.Medium => "Medio",
+            DifficultyTier.Hard => "Dificil",
+            DifficultyTier.Expert => "Experto",
+            _ => "Medio"
+        };
     }
 }
 

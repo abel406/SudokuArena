@@ -1,4 +1,5 @@
 using SudokuArena.Desktop.Theming;
+using SudokuArena.Application.Puzzles;
 
 namespace SudokuArena.Desktop.Tests;
 
@@ -28,6 +29,18 @@ public sealed class ThemePreferenceStoreTests
     }
 
     [Fact]
+    public void SaveAndLoadDifficultyTier_ShouldRoundTrip()
+    {
+        var path = BuildTempFilePath();
+        var store = new JsonThemePreferenceStore(path);
+
+        store.SaveDifficultyTier(DifficultyTier.Expert);
+        var loaded = store.LoadDifficultyTier();
+
+        Assert.Equal(DifficultyTier.Expert, loaded);
+    }
+
+    [Fact]
     public void LoadThemeMode_ShouldReturnNull_WhenStoredValueIsInvalid()
     {
         var path = BuildTempFilePath();
@@ -38,6 +51,32 @@ public sealed class ThemePreferenceStoreTests
         var loaded = store.LoadThemeMode();
 
         Assert.Null(loaded);
+    }
+
+    [Fact]
+    public void LoadDifficultyTier_ShouldReturnNull_WhenStoredValueIsInvalid()
+    {
+        var path = BuildTempFilePath();
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, "{ \"DifficultyTier\": \"NotATier\" }");
+        var store = new JsonThemePreferenceStore(path);
+
+        var loaded = store.LoadDifficultyTier();
+
+        Assert.Null(loaded);
+    }
+
+    [Fact]
+    public void SaveThemeAndDifficulty_ShouldPreserveBothValues()
+    {
+        var path = BuildTempFilePath();
+        var store = new JsonThemePreferenceStore(path);
+
+        store.SaveThemeMode(ThemeMode.Dark);
+        store.SaveDifficultyTier(DifficultyTier.Hard);
+
+        Assert.Equal(ThemeMode.Dark, store.LoadThemeMode());
+        Assert.Equal(DifficultyTier.Hard, store.LoadDifficultyTier());
     }
 
     private static string BuildTempFilePath()
