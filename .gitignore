@@ -370,3 +370,4 @@ FodyWeavers.xsd
 **/media/
 **/media-dev/
 /Images
+/.tools
