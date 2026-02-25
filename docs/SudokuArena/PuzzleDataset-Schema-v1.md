@@ -14,8 +14,16 @@ Contrato unico de dataset para consumo en Desktop/Server (runtime) y salida de `
 
 ## question_bank[]
 - `puzzle_id` (string)
-- `puzzle` (string, 81 chars, `1-9` y `0`/`.` para vacios)
-- `solution` (string, 81 chars, solo `1-9`)
+- `board_kind` (enum string, opcional, default `Classic9x9`): `Classic9x9|SixBySix|SixteenBySixteen`
+- `mode` (enum string, opcional): `Beginner|Easy|Medium|Hard|Expert|Extreme|Six|Sixteen|Unknown`
+- `puzzle` (string):
+  - `Classic9x9`: 81 chars (`1-9` y `0`/`.` para vacios)
+  - `SixBySix`: 36 chars (`1-6` y `0`/`.`)
+  - `SixteenBySixteen`: 256 chars (`1-9A-G` y `0`/`.`)
+- `solution` (string):
+  - `Classic9x9`: 81 chars (`1-9`)
+  - `SixBySix`: 36 chars (`1-6`)
+  - `SixteenBySixteen`: 256 chars (`1-9A-G`)
 - `difficulty_tier` (enum string): `Beginner|Easy|Medium|Hard|Expert`
 - `given_count` (int)
 
@@ -36,6 +44,8 @@ Contrato unico de dataset para consumo en Desktop/Server (runtime) y salida de `
   "question_bank": [
     {
       "puzzle_id": "puz-0001",
+      "board_kind": "Classic9x9",
+      "mode": "Medium",
       "puzzle": "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79",
       "solution": "534678912672195348198342567859761423426853791713924856961537284287419635345286179",
       "difficulty_tier": "Medium",

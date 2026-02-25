@@ -19,7 +19,9 @@ public sealed record PuzzleQuestionEntry(
     [property: JsonPropertyName("puzzle")] string Puzzle,
     [property: JsonPropertyName("solution")] string Solution,
     [property: JsonPropertyName("difficulty_tier")] DifficultyTier DifficultyTier,
-    [property: JsonPropertyName("given_count")] int GivenCount);
+    [property: JsonPropertyName("given_count")] int GivenCount,
+    [property: JsonPropertyName("board_kind")] PuzzleBoardKind BoardKind = PuzzleBoardKind.Classic9x9,
+    [property: JsonPropertyName("mode")] PuzzleMode Mode = PuzzleMode.Unknown);
 
 public sealed record PuzzleSolverDetailEntry(
     [property: JsonPropertyName("weighted_se")] double WeightedScoreEstimate,

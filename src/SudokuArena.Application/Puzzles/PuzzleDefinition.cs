@@ -8,4 +8,6 @@ public sealed record PuzzleDefinition(
     int GivenCount,
     double WeightedScoreEstimate,
     int MaxTechniqueRate,
-    int AdvancedHits);
+    int AdvancedHits,
+    PuzzleBoardKind BoardKind = PuzzleBoardKind.Classic9x9,
+    PuzzleMode Mode = PuzzleMode.Unknown);
