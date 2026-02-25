@@ -140,6 +140,25 @@ Subtareas tecnicas iniciales (UI-01/UI-02):
 - `UI-02.4` `src/SudokuArena.Desktop/Themes/Theme.Dark.xaml`: tokens y brushes de paleta Dark.
 - `UI-02.5` `src/SudokuArena.Desktop/Controls/SudokuBoardControl.cs`: reemplazar colores hardcodeados por lectura de brushes semanticos.
 
+Plan de ejecucion previo (UI-06/UI-07/UI-08):
+
+1. Fase 1 - Evento de completado desde ViewModel:
+- `UI-06.1` `src/SudokuArena.Desktop/ViewModels/MainViewModel.cs`: emitir evento al aplicar jugada valida con flags `rowDone`, `colDone`, `boxDone`.
+- `UI-06.2` `src/SudokuArena.Desktop/ViewModels/MainViewModel.cs`: no disparar evento en jugadas invalidas, celdas given, ni borrado sin efecto.
+- Criterio de aceptacion: al completar fila/columna/cuadro, el evento se emite una vez por jugada con flags correctos.
+
+2. Fase 2 - Motor de animacion en tablero:
+- `UI-07.1` `src/SudokuArena.Desktop/Controls/SudokuBoardControl.cs`: agregar estado temporal de animacion por celda y scheduler por anillos.
+- `UI-07.2` `src/SudokuArena.Desktop/Controls/SudokuBoardControl.cs`: construir conjunto objetivo por union de fila/columna/3x3 sin duplicados.
+- `UI-07.3` `src/SudokuArena.Desktop/MainWindow.xaml.cs`: suscribir evento VM -> Board para iniciar animacion en celda origen.
+- Criterio de aceptacion: si se cumplen varias condiciones a la vez (ej. fila+3x3), se anima union en un solo ciclo, sin flicker.
+
+3. Fase 3 - Configuracion y pruebas:
+- `UI-08.1` `src/SudokuArena.Desktop/ViewModels/MainViewModel.cs`: toggle `CompletionAnimation` persistido junto a settings locales.
+- `UI-08.2` `src/SudokuArena.Desktop/Themes/Theme.Light.xaml` y `Theme.Dark.xaml`: tokens de color/alpha para pulso de completado.
+- `UI-08.3` `test/SudokuArena.Desktop.Tests/*`: tests de emision de evento y builder de celdas animadas (row/col/box/combinadas).
+- Criterio de aceptacion: `CompletionAnimation=OFF` desactiva efecto; tests de logica pasan; rendering se mantiene estable.
+
 ## Proxima Ola Recomendada
 1. Conectar desktop realmente a server (SignalR + API) y definir flujo LAN de punta a punta.
 2. Implementar perfil de jugador persistido + autenticacion real.
