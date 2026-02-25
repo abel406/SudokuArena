@@ -2,14 +2,12 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using SudokuArena.Desktop.Theming;
 
 namespace SudokuArena.Desktop.Controls;
 
 public sealed class SudokuBoardControl : FrameworkElement
 {
-    private static readonly Color StructureHighlightColor = Color.FromArgb(86, 216, 220, 226);
-    private static readonly Color AccentHighlightColor = Color.FromArgb(96, 139, 176, 237);
-
     public static readonly DependencyProperty CellsProperty = DependencyProperty.Register(
         nameof(Cells),
         typeof(IReadOnlyList<int?>),
@@ -83,9 +81,9 @@ public sealed class SudokuBoardControl : FrameworkElement
         var size = Math.Min(ActualWidth, ActualHeight);
         var cell = size / 9d;
         var boardRect = new Rect(0, 0, size, size);
-        var structureHighlightBrush = new SolidColorBrush(StructureHighlightColor);
+        var palette = BoardThemePalette.FromResources(this);
 
-        dc.DrawRectangle(Brushes.White, null, boardRect);
+        dc.DrawRectangle(palette.BoardBackgroundBrush, null, boardRect);
 
         if (SelectedIndex is >= 0 and < 81)
         {
@@ -96,23 +94,23 @@ public sealed class SudokuBoardControl : FrameworkElement
             var rowHighlight = new Rect(0, selectedRow * cell, size, cell);
             var colHighlight = new Rect(selectedCol * cell, 0, cell, size);
             var boxHighlight = new Rect(boxStartCol * cell, boxStartRow * cell, 3 * cell, 3 * cell);
-            dc.DrawRectangle(structureHighlightBrush, null, rowHighlight);
-            dc.DrawRectangle(structureHighlightBrush, null, colHighlight);
-            dc.DrawRectangle(structureHighlightBrush, null, boxHighlight);
+            dc.DrawRectangle(palette.RelatedGroupBrush, null, rowHighlight);
+            dc.DrawRectangle(palette.RelatedGroupBrush, null, colHighlight);
+            dc.DrawRectangle(palette.RelatedGroupBrush, null, boxHighlight);
         }
 
-        DrawSelectedNumberHighlights(dc, cell);
+        DrawSelectedNumberHighlights(dc, cell, palette);
 
         if (SelectedIndex is >= 0 and < 81)
         {
             var selectedRow = SelectedIndex / 9;
             var selectedCol = SelectedIndex % 9;
             var highlight = new Rect(selectedCol * cell, selectedRow * cell, cell, cell);
-            dc.DrawRectangle(new SolidColorBrush(AccentHighlightColor), null, highlight);
+            dc.DrawRectangle(palette.ActiveCellBrush, null, highlight);
         }
 
-        DrawGrid(dc, size, cell);
-        DrawValues(dc, cell);
+        DrawGrid(dc, size, cell, palette);
+        DrawValues(dc, cell, palette);
     }
 
     protected override Size MeasureOverride(Size availableSize)
@@ -211,13 +209,13 @@ public sealed class SudokuBoardControl : FrameworkElement
         }
     }
 
-    private static void DrawGrid(DrawingContext dc, double size, double cell)
+    private static void DrawGrid(DrawingContext dc, double size, double cell, BoardThemePalette palette)
     {
         for (var i = 0; i <= 9; i++)
         {
             var isBold = i % 3 == 0;
             var pen = new Pen(
-                new SolidColorBrush(isBold ? Color.FromRgb(117, 123, 135) : Color.FromRgb(186, 191, 201)),
+                isBold ? palette.GridMajorBrush : palette.GridMinorBrush,
                 isBold ? 2.2 : 1);
 
             var offset = i * cell;
@@ -226,7 +224,7 @@ public sealed class SudokuBoardControl : FrameworkElement
         }
     }
 
-    private void DrawValues(DrawingContext dc, double cell)
+    private void DrawValues(DrawingContext dc, double cell, BoardThemePalette palette)
     {
         var cells = Cells;
         var givens = GivenCells;
@@ -252,7 +250,7 @@ public sealed class SudokuBoardControl : FrameworkElement
                 FlowDirection.LeftToRight,
                 new Typeface("Segoe UI"),
                 cell * 0.48,
-                new SolidColorBrush(GetValueColor(i, givens, invalidCells, value.Value)),
+                GetValueBrush(i, givens, invalidCells, palette),
                 VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
             var x = (col * cell) + ((cell - text.Width) / 2);
@@ -261,7 +259,7 @@ public sealed class SudokuBoardControl : FrameworkElement
         }
     }
 
-    private void DrawSelectedNumberHighlights(DrawingContext dc, double cell)
+    private void DrawSelectedNumberHighlights(DrawingContext dc, double cell, BoardThemePalette palette)
     {
         if (SelectedNumber is < 1 or > 9)
         {
@@ -284,20 +282,24 @@ public sealed class SudokuBoardControl : FrameworkElement
             var row = i / 9;
             var col = i % 9;
             dc.DrawRectangle(
-                new SolidColorBrush(AccentHighlightColor),
+                palette.MatchingDigitBrush,
                 null,
                 new Rect(col * cell, row * cell, cell, cell));
         }
     }
 
-    private Color GetValueColor(int index, IReadOnlyList<bool> givens, IReadOnlyList<bool> invalidCells, int value)
+    private static Brush GetValueBrush(
+        int index,
+        IReadOnlyList<bool> givens,
+        IReadOnlyList<bool> invalidCells,
+        BoardThemePalette palette)
     {
         if (invalidCells[index])
         {
-            return Color.FromRgb(201, 41, 41);
+            return palette.ConflictTextBrush;
         }
 
-        return Color.FromRgb(30, 30, 34);
+        return givens[index] ? palette.GivenTextBrush : palette.UserTextBrush;
     }
 }
 
