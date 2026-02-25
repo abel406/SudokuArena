@@ -18,6 +18,9 @@
     <None Update="appsettings.Development.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="PuzzleSeed\\puzzles.runtime.v1.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <PropertyGroup>
@@ -26,6 +29,28 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <PuzzleDatasetTargetTotal Condition="'$(PuzzleDatasetTargetTotal)' == ''">9369</PuzzleDatasetTargetTotal>
+    <PuzzleDatasetMinTotal Condition="'$(PuzzleDatasetMinTotal)' == ''">9369</PuzzleDatasetMinTotal>
+    <GeneratePuzzleDatasetOnPublish Condition="'$(GeneratePuzzleDatasetOnPublish)' == ''">true</GeneratePuzzleDatasetOnPublish>
+    <GeneratePuzzleDatasetOnBuild Condition="'$(GeneratePuzzleDatasetOnBuild)' == ''">false</GeneratePuzzleDatasetOnBuild>
   </PropertyGroup>
+
+  <Target
+    Name="GenerateAndValidatePuzzleDataset"
+    Condition="'$(GeneratePuzzleDatasetOnBuild)' == 'true'"
+    BeforeTargets="BeforeBuild">
+    <Message Importance="high" Text="Generating puzzle dataset for build (TargetTotal=$(PuzzleDatasetTargetTotal), MinTotal=$(PuzzleDatasetMinTotal))..." />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\tools\puzzle_dataset\generate_runtime_dataset.ps1&quot; -TargetTotal $(PuzzleDatasetTargetTotal) -MinTotal $(PuzzleDatasetMinTotal)" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\tools\puzzle_dataset\validate_runtime_dataset.ps1&quot; -DatasetPath &quot;$(MSBuildProjectDirectory)\PuzzleSeed\puzzles.runtime.v1.json&quot;" />
+  </Target>
+
+  <Target
+    Name="GenerateAndValidatePuzzleDatasetForPublish"
+    Condition="'$(GeneratePuzzleDatasetOnPublish)' == 'true'"
+    BeforeTargets="Publish">
+    <Message Importance="high" Text="Generating puzzle dataset for publish (TargetTotal=$(PuzzleDatasetTargetTotal), MinTotal=$(PuzzleDatasetMinTotal))..." />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\tools\puzzle_dataset\generate_runtime_dataset.ps1&quot; -TargetTotal $(PuzzleDatasetTargetTotal) -MinTotal $(PuzzleDatasetMinTotal)" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\tools\puzzle_dataset\validate_runtime_dataset.ps1&quot; -DatasetPath &quot;$(MSBuildProjectDirectory)\PuzzleSeed\puzzles.runtime.v1.json&quot;" />
+  </Target>
 
 </Project>
