@@ -95,8 +95,9 @@ Orden recomendado de ejecucion del feature:
 | UI-03 | Crear recursos para temas claro/oscuro con `DynamicResource` | Alta | Planificada | Salida minima: `ResourceDictionary` Light y Dark conectados a un selector de tema sin reiniciar app. |
 | UI-04 | Normalizar reglas de prioridad de resaltado | Alta | Planificada | Salida minima: precedencia unica (`Conflict > Active > MatchingDigit > RelatedGroup > Normal`) documentada y cubierta por tests. |
 | UI-05 | Ajustar colores de resaltado segun criterio del proyecto | Alta | Planificada | Salida minima: fila/columna/3x3 en gris claro; solo celda activa y digitos coincidentes en azul. |
-| UI-06 | Implementar animacion de completado por fila/columna/3x3 | Alta | Planificada | Salida minima: onda radial desde celda editada cuando se complete fila, columna o cuadro. |
-| UI-07 | Soportar animacion combinada (fila+columna, fila+3x3, etc.) | Alta | Planificada | Salida minima: union de celdas objetivo en el mismo ciclo de animacion, sin duplicados ni parpadeo. |
+| UI-06 | Implementar animacion de completado por fila/columna/3x3 | Alta | Completada | Implementado: evento de completado en VM + disparo de onda radial por unidad completada. |
+| UI-07 | Soportar animacion combinada (fila+columna, fila+3x3, etc.) | Alta | Completada | Implementado: union de celdas objetivo por planner y animacion unica sin duplicados visibles. |
+| UI-13 | Animacion global al completar partida (tablero completo) | Alta | Completada | Implementado: onda global desde ultima celda jugada y apertura de dialogo tras breve espera. |
 | UI-08 | Agregar setting `CompletionAnimation` y respetar preferencia | Media | Planificada | Salida minima: toggle ON/OFF persistido y aplicado en runtime. |
 | UI-09 | Agregar setting `ThemeMode` (`System/Light/Dark`) | Media | Planificada | Salida minima: persistencia local y aplicacion inmediata al cambiar. |
 | UI-10 | Pruebas unitarias de resaltado por estado y prioridad | Alta | Planificada | Salida minima: suite de tests para casos de seleccion, coincidencia, conflicto y combinaciones. |
@@ -111,16 +112,17 @@ Orden recomendado de ejecucion del feature:
 5. `UI-05`
 6. `UI-06`
 7. `UI-07`
-8. `UI-08`
-9. `UI-09`
-10. `UI-10`
-11. `UI-11`
-12. `UI-12`
+8. `UI-13`
+9. `UI-08`
+10. `UI-09`
+11. `UI-10`
+12. `UI-11`
+13. `UI-12`
 
 Agrupacion por fase:
 1. Fase A - Fundacion de tema y paleta: `UI-01`, `UI-02`, `UI-03`.
 2. Fase B - Reglas visuales de resaltado: `UI-04`, `UI-05`.
-3. Fase C - Animaciones de completado: `UI-06`, `UI-07`, `UI-08`.
+3. Fase C - Animaciones de completado: `UI-06`, `UI-07`, `UI-13`, `UI-08`.
 4. Fase D - Configuracion de experiencia: `UI-09`.
 5. Fase E - Calidad y regresion: `UI-10`, `UI-11`, `UI-12`.
 
@@ -158,6 +160,13 @@ Plan de ejecucion previo (UI-06/UI-07/UI-08):
 - `UI-08.2` `src/SudokuArena.Desktop/Themes/Theme.Light.xaml` y `Theme.Dark.xaml`: tokens de color/alpha para pulso de completado.
 - `UI-08.3` `test/SudokuArena.Desktop.Tests/*`: tests de emision de evento y builder de celdas animadas (row/col/box/combinadas).
 - Criterio de aceptacion: `CompletionAnimation=OFF` desactiva efecto; tests de logica pasan; rendering se mantiene estable.
+
+4. Fase 4 - Animacion global de victoria:
+- `UI-13.1` `src/SudokuArena.Desktop/Animations/CompletionAnimationPlanner.cs`: planificador de onda global sobre 81 celdas (anillos desde origen).
+- `UI-13.2` `src/SudokuArena.Desktop/Controls/SudokuBoardControl.cs`: metodo `StartVictoryAnimation(...)` con timing propio.
+- `UI-13.3` `src/SudokuArena.Desktop/MainWindow.xaml.cs`: disparar animacion global al ganar y mostrar dialogo de victoria tras una espera corta.
+- `UI-13.4` `test/SudokuArena.Desktop.Tests/CompletionAnimationPlannerTests.cs`: validar mapeo de distancias para onda global (centro/esquina).
+- Criterio de aceptacion: al completar puzzle, se observa animacion en todo el tablero y luego aparece el dialogo.
 
 ## Proxima Ola Recomendada
 1. Conectar desktop realmente a server (SignalR + API) y definir flujo LAN de punta a punta.
