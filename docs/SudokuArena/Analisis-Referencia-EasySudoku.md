@@ -3,6 +3,8 @@
 Fecha de inicio: 2026-02-25  
 Fuente: decomp local en `artifacts/decomp/easy.sudoku.puzzle.solver.free_cli_20260224_215916`
 
+Leyenda de siglas compartida: `docs/SudokuArena/Leyenda-Siglas.md`
+
 Este documento se actualiza por bloques para no perder hallazgos por desconexion.
 
 ## 1) Identidad de la app (confirmado)
@@ -570,6 +572,46 @@ Razon tecnica:
   - `time thresholds` por puzzle (equivalente a `question_time_map`),
   - opcional: `solverDetails` por tecnica para analytics y UI de resumen.
 - Las pistas "paso a paso" no estan preguardadas en estos JSON; se derivan en runtime por motor de hints/solver.
+
+### 16.6 Verificacion puntual pedida: tamano real del lote descifrado (2026-02-25)
+
+- Se valido el archivo `defaultQbSolverDetails.decrypted.json` con parse local:
+  - `count = 9369` claves (puzzles)
+  - `minLen = 81`
+  - `maxLen = 81`
+  - `avgLen = 81`
+- Conclusion de esta verificacion:
+  - En este lote concreto descifrado, todos los `qid` corresponden a tablero `9x9` (81 celdas).
+  - No aparecieron entradas de longitud `36` (`6x6`) ni `256` (`16x16`) dentro de **este** archivo.
+- Nota:
+  - Esto no contradice que la app soporte modos `SIX` y `SIXTEEN`; solo acota que este dataset analizado (`defaultQbSolverDetails`) es 9x9.
+
+### 16.7 Verificacion puntual pedida: tamanos por archivo `defaultQb*` (2026-02-25)
+
+- Se aplico el mismo flujo de descifrado AES (`SKpvYaOKKIz+2dpO`, CBC/PKCS5, IV cero) a los `defaultQb*.json` de `assets/config` y se extrajo longitud de `question` por entrada.
+- Resultado por archivo (resumen):
+  - `defaultQb.json`: `len=36:300`, `len=81:5063`
+  - `defaultQb_lgn.json`: `len=36:300`, `len=81:4303`
+  - `defaultQb_lgn2.json`: `len=36:300`, `len=81:4106`
+  - `defaultQb_remove_long.json`: `len=36:240`, `len=81:3293`
+  - `defaultQb_remove_short.json`: `len=36:243`, `len=81:3301`
+  - `defaultQb_lion_202412.json`: `len=81:4303`
+  - `defaultQb_lion_202501.json`: `len=81:10631`
+  - `defaultQbConfrontation.json`: `len=81:5967`
+  - `defaultQbEBAndJY.json`: `len=81:6328`
+  - `defaultQbRandom1/2/3.json`: solo `len=81`
+  - `defaultQbRank1/2.json`: solo `len=81`
+  - `defaultQbSolverDetails.json`: claves solo `len=81:9369`
+- `question_time_map.json`:
+  - `len=36:300`
+  - `len=81:4109`
+  - no aparecio `len=256`.
+- Conclusiones:
+  - En los JSON de `assets/config` analizados hay `6x6` y `9x9`.
+  - No se observaron puzzles `16x16` (`len=256`) en esos JSON.
+  - El modo `16x16` si existe en codigo y en bancos embebidos en clases Java:
+    - `sources/lf/g.java`: `238` entradas, todas `len=256`.
+    - `sources/lf/j.java`: contiene tambien un lote pequeno `16x16` (`len=256`) y `6x6` (`len=36`) dentro del provider default.
 
 ## 17) Extracto funcional solicitado (cronometro, errores, config, colores, perfil, storage, sync)
 

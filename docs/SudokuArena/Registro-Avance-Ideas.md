@@ -8,6 +8,8 @@ Este documento sirve como registro vivo de:
 
 Actualizado: 2026-02-25
 
+Leyenda de siglas del proyecto: `docs/SudokuArena/Leyenda-Siglas.md`
+
 ## Hecho
 - Arquitectura base por capas (`Domain`, `Application`, `Infrastructure`, `Server`, `Desktop`, `Sync.Worker`).
 - Script de arranque local con restore/build/test y lanzamiento de server + desktop.
@@ -22,6 +24,18 @@ Actualizado: 2026-02-25
   - reloj,
   - dialogos de victoria/derrota,
   - pruebas Desktop para flujo de borrado (incluyendo escenario general de celdas no-given en tablero casi completo).
+- Pipeline Desktop de publicacion:
+  - `dotnet publish` ahora ejecuta generacion + validacion automatica del dataset runtime (`tools/puzzle_dataset/generate_runtime_dataset.ps1` + `validate_runtime_dataset.ps1`),
+  - cantidad configurable por build con `PuzzleDatasetTargetTotal` (default: `9369`),
+  - umbral minimo obligatorio configurable con `PuzzleDatasetMinTotal` (default: `9369`), si no se alcanza el build/publish falla.
+- Fuentes de puzzles separadas en Desktop:
+  - `ServerSeedPuzzleProvider` (fuente servidor/seed remoto, opcional),
+  - `LocalSeedPuzzleProvider` (seed local embebido),
+  - `CompositePuzzleProvider` con prioridad `server -> local` para fallback controlado.
+- Contrato unificado de puzzle preparado para futuros modos/tableros:
+  - `PuzzleBoardKind` (`Classic9x9`, `SixBySix`, `SixteenBySixteen`) y `PuzzleMode` (`Beginner..Extreme`, `Six`, `Sixteen`) agregados al schema/runtime,
+  - `PuzzleModeResolver` para inferencia consistente cuando el dataset no especifique modo,
+  - `JsonPuzzleProvider` Desktop mantiene soporte activo en `Classic9x9` y omite otros `board_kind` hasta implementar controles 6x6/16x16.
 - Backend base con:
   - creacion y consulta de partidas,
   - hub SignalR para movimientos,
@@ -173,10 +187,10 @@ Plan de ejecucion previo (UI-06/UI-07/UI-08):
 | ID | Tarea | Prioridad | Estado | Nota |
 |---|---|---|---|---|
 | GS-01 | Definir contrato de dificultad para runtime (`Beginner/Easy/Medium/Hard/Expert`) | Alta | Completada | Implementado: `DifficultyTier` en Application + exposicion en `MainViewModel` (`SelectedDifficultyTier`, `DifficultyTierOptions`). |
-| GS-02 | Agregar selector de dificultad en UI de inicio/nuevo juego | Alta | Planificada | Salida minima: control en Desktop para elegir dificultad antes de `Nuevo Puzzle`. |
-| GS-03 | Conectar `Nuevo Puzzle` para usar dificultad seleccionada | Alta | Planificada | Salida minima: el comando siempre pide puzzle del tier elegido, con mensaje claro si no hay stock. |
-| GS-04 | Persistir ultima dificultad elegida en settings locales | Media | Planificada | Salida minima: al reiniciar app, la dificultad seleccionada se restaura. |
-| GS-05 | Pruebas unitarias del flujo de seleccion y comando | Alta | Planificada | Salida minima: tests para cambio de dificultad, nuevo puzzle y fallback sin datos. |
+| GS-02 | Agregar selector de dificultad en UI de inicio/nuevo juego | Alta | Completada | Implementado: `ComboBox` de dificultad en `MainWindow.xaml` enlazado a `SelectedDifficultyTier`. |
+| GS-03 | Conectar `Nuevo Puzzle` para usar dificultad seleccionada | Alta | Completada | Implementado: `NewPuzzleCommand` consulta `IPuzzleProvider.GetNext(tier)` y notifica si no hay stock del nivel. |
+| GS-04 | Persistir ultima dificultad elegida en settings locales | Media | Completada | Implementado: `IThemePreferenceStore` + `JsonThemePreferenceStore` ahora guardan/cargan `DifficultyTier` en `desktop-settings.json`; `MainViewModel` restaura al iniciar y persiste al cambiar. |
+| GS-05 | Pruebas unitarias del flujo de seleccion y comando | Alta | Completada | Implementado: pruebas de selector/comando (`MainViewModelDifficultyTierTests`, `MainViewModelNewPuzzleTests`) y preferencia persistida (`MainViewModelDifficultyPreferenceTests`). |
 
 Orden recomendado de ejecucion del feature:
 1. `GS-01`
@@ -191,10 +205,10 @@ Orden recomendado de ejecucion del feature:
 |---|---|---|---|---|
 | PC-01 | Definir contrato `PuzzleDefinition` (id, grid, solution, difficulty, metadata) | Alta | Completada | Implementado: record tipado `PuzzleDefinition` en `src/SudokuArena.Application/Puzzles`. |
 | PC-02 | Definir interfaz `IPuzzleProvider` para obtener puzzle por dificultad | Alta | Completada | Implementado: contrato `IPuzzleProvider.GetNext(DifficultyTier)` desacoplado de UI/fuente. |
-| PC-03 | Implementar `JsonPuzzleProvider` (dataset local) | Alta | Planificada | Salida minima: carga de JSON local con validacion basica de schema y datos invalidos. |
-| PC-04 | Politica de no repeticion y fallback por dificultad | Media | Planificada | Salida minima: evita repetir puzzle inmediato; fallback controlado si tier vacio. |
-| PC-05 | Integrar provider con `MainViewModel`/`NewPuzzleCommand` | Alta | Planificada | Salida minima: Desktop deja de depender del puzzle de muestra fijo para `Nuevo Puzzle`. |
-| PC-06 | Pruebas unitarias del provider y de integracion VM | Alta | Planificada | Salida minima: tests de parseo, filtrado por dificultad y no repeticion basica. |
+| PC-03 | Implementar `JsonPuzzleProvider` (dataset local) | Alta | Completada | Implementado: provider en Infrastructure con validaciones de `schema_version`, ids, puzzle/solution, `solver_details` y `time_map`. |
+| PC-04 | Politica de no repeticion y fallback por dificultad | Media | Completada | Implementado en `JsonPuzzleProvider`: resolucion por cercania de tier (fallback cuando el solicitado esta vacio) y seleccion evitando repeticion inmediata cuando hay mas de un puzzle en el tier efectivo. |
+| PC-05 | Integrar provider con `MainViewModel`/`NewPuzzleCommand` | Alta | Completada | Implementado: DI en `App.xaml.cs` + dataset local `Data/puzzles.runtime.v1.json` consumido en runtime. |
+| PC-06 | Pruebas unitarias del provider y de integracion VM | Alta | Completada | Implementado: `JsonPuzzleProviderTests` + pruebas de integracion de `MainViewModel` con provider por tier (solicitud por dificultad, carga y mensaje de fallback). |
 
 Orden recomendado de ejecucion del feature:
 1. `PC-01`
@@ -209,10 +223,10 @@ Orden recomendado de ejecucion del feature:
 | ID | Tarea | Prioridad | Estado | Nota |
 |---|---|---|---|---|
 | PD-01 | Definir esquema JSON final de consumo Desktop/Server (`schema_version`) | Alta | Completada | Implementado: `PuzzleDatasetDocument` (question_bank/solver_details/time_map) + doc `docs/SudokuArena/PuzzleDataset-Schema-v1.md`. |
-| PD-02 | Agregar exportador de lote MVP para runtime (`puzzles.runtime.v1.json`) | Alta | Planificada | Salida minima: archivo por dificultad con volumen inicial util para pruebas. |
-| PD-03 | Agregar validador de dataset en CI/local | Media | Propuesta | Salida minima: comando que falle si hay puzzles invalidos o dificultades inconsistentes. |
+| PD-02 | Agregar exportador de lote MVP para runtime (`puzzles.runtime.v1.json`) | Alta | Completada | Implementado: `tools/puzzle_dataset/generate_runtime_dataset.ps1` genera lote balanceado por tiers y sincroniza `PuzzleSeed/Data`. |
+| PD-03 | Agregar validador de dataset en CI/local | Media | Completada | Implementado: `tools/puzzle_dataset/validate_runtime_dataset.ps1` valida schema, IDs, puzzle/solution, consistencia de givens, `solver_details`, `time_map` y solucion por `board_kind` (9x9/6x6/16x16). |
 | PD-04 | Versionado de pesos/umbrales y trazabilidad de lote | Media | Propuesta | Salida minima: metadatos `weights_version`, `thresholds_version`, fecha y fuente del lote. |
-| PD-05 | Empalme DS->PC (provider consume salida del tooling sin cambios manuales) | Alta | Planificada | Salida minima: pipeline reproducible sin editar JSON a mano. |
+| PD-05 | Empalme DS->PC (provider consume salida del tooling sin cambios manuales) | Alta | Completada | Implementado: `JsonPuzzleProvider` consume directo el schema v1; Desktop carga `PuzzleSeed/puzzles.runtime.v1.json` generado por tooling. |
 
 Orden recomendado de ejecucion del feature:
 1. `PD-01`
@@ -220,6 +234,29 @@ Orden recomendado de ejecucion del feature:
 3. `PD-05`
 4. `PD-03`
 5. `PD-04`
+
+### Feature: Modos de Tablero Unificados (9x9 / 6x6 / 16x16)
+
+| ID | Tarea | Prioridad | Estado | Nota |
+|---|---|---|---|---|
+| BM-01 | Definir contrato de `board_kind` y `mode` en Application | Alta | Completada | Implementado: `PuzzleBoardKind`, `PuzzleMode`, `PuzzleModeResolver`. |
+| BM-02 | Extender schema/runtime para incluir `board_kind` y `mode` | Alta | Completada | Implementado en `PuzzleDatasetDocument`, generador runtime y schema doc v1. |
+| BM-03 | Validar dataset por tipo de tablero (simbolos/longitud/reglas) | Alta | Completada | Implementado: validador soporta `Classic9x9`, `SixBySix`, `SixteenBySixteen`. |
+| BM-04 | Ajustar provider Desktop para ignorar temporalmente tableros no soportados | Alta | Completada | Implementado: `JsonPuzzleProvider` carga solo `Classic9x9` y deja trazada compatibilidad futura. |
+| BM-05 | Exponer selector de tamaño de tablero en UI (`9x9/6x6/16x16`) | Alta | Planificada | Salida minima: selector visible y persistencia local del board mode seleccionado. |
+| BM-06 | Generalizar `SudokuBoard` para reglas dinamicas por tamaño | Alta | Planificada | Salida minima: validar jugadas y conflictos para 6x6 (2x3), 9x9 (3x3), 16x16 (4x4). |
+| BM-07 | Implementar control grafico y UX de juego para 6x6 | Alta | Planificada | Salida minima: render, input, resaltado, borrado, victoria/derrota y pruebas basicas en 6x6. |
+| BM-08 | Implementar control grafico y UX de juego para 16x16 | Media | Propuesta | Salida minima: render virtualizado/escala, input hexadecimal (1-9/A-G), reglas y pruebas. |
+| BM-09 | Integrar seeds 6x6/16x16 al runtime oficial | Alta | Planificada | Salida minima: incluir bancos en `puzzles.runtime.v1.json` sin romper 9x9 ni pipeline de build/publish. |
+| BM-10 | Estrategia de no repeticion global entre cliente y servidor por `board_kind+mode` | Media | Propuesta | Salida minima: contrato de asignacion determinista para evitar repeticiones entre seed local y partidas online. |
+
+Orden recomendado de ejecucion del feature:
+1. `BM-05`
+2. `BM-06`
+3. `BM-07`
+4. `BM-09`
+5. `BM-08`
+6. `BM-10`
 
 Orden transversal recomendado (para no pisar features):
 1. `GS-01`
@@ -285,3 +322,4 @@ Criterios de aceptacion integrados (flujo Nuevo Juego):
 - Cada feature terminada mueve items de `Parcial` o `Pendiente` a `Hecho`.
 - Cada decision importante se agrega con fecha en commit y, si aplica, en `Architecture.md`.
 - Cada idea nueva se registra en la tabla de backlog con prioridad inicial.
+- Toda sigla nueva usada en este documento o docs relacionadas debe agregarse en `docs/SudokuArena/Leyenda-Siglas.md`; si se elimina su uso, se elimina tambien de la leyenda.

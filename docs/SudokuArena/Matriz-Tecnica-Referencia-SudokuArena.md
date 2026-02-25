@@ -2,6 +2,7 @@
 
 Fecha: 2026-02-25  
 Base: hallazgos en `docs/SudokuArena/Analisis-Referencia-EasySudoku.md` (secciones 15, 16 y 17)
+Leyenda de siglas compartida: `docs/SudokuArena/Leyenda-Siglas.md`
 
 Objetivo:
 - convertir hallazgos del decompilado en tareas de implementacion concretas para `Domain`, `Application`, `Infrastructure`, `Server` y `Desktop`.
