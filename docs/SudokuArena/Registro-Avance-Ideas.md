@@ -172,7 +172,7 @@ Plan de ejecucion previo (UI-06/UI-07/UI-08):
 
 | ID | Tarea | Prioridad | Estado | Nota |
 |---|---|---|---|---|
-| GS-01 | Definir contrato de dificultad para runtime (`Beginner/Easy/Medium/Hard/Expert`) | Alta | Planificada | Salida minima: enum/modelo unico compartido por VM, provider y loader. |
+| GS-01 | Definir contrato de dificultad para runtime (`Beginner/Easy/Medium/Hard/Expert`) | Alta | Completada | Implementado: `DifficultyTier` en Application + exposicion en `MainViewModel` (`SelectedDifficultyTier`, `DifficultyTierOptions`). |
 | GS-02 | Agregar selector de dificultad en UI de inicio/nuevo juego | Alta | Planificada | Salida minima: control en Desktop para elegir dificultad antes de `Nuevo Puzzle`. |
 | GS-03 | Conectar `Nuevo Puzzle` para usar dificultad seleccionada | Alta | Planificada | Salida minima: el comando siempre pide puzzle del tier elegido, con mensaje claro si no hay stock. |
 | GS-04 | Persistir ultima dificultad elegida en settings locales | Media | Planificada | Salida minima: al reiniciar app, la dificultad seleccionada se restaura. |
@@ -189,8 +189,8 @@ Orden recomendado de ejecucion del feature:
 
 | ID | Tarea | Prioridad | Estado | Nota |
 |---|---|---|---|---|
-| PC-01 | Definir contrato `PuzzleDefinition` (id, grid, solution, difficulty, metadata) | Alta | Planificada | Salida minima: tipo fuerte versionable para consumir puzzles en app. |
-| PC-02 | Definir interfaz `IPuzzleProvider` para obtener puzzle por dificultad | Alta | Planificada | Salida minima: API estable desacoplada de UI y de la fuente de datos. |
+| PC-01 | Definir contrato `PuzzleDefinition` (id, grid, solution, difficulty, metadata) | Alta | Completada | Implementado: record tipado `PuzzleDefinition` en `src/SudokuArena.Application/Puzzles`. |
+| PC-02 | Definir interfaz `IPuzzleProvider` para obtener puzzle por dificultad | Alta | Completada | Implementado: contrato `IPuzzleProvider.GetNext(DifficultyTier)` desacoplado de UI/fuente. |
 | PC-03 | Implementar `JsonPuzzleProvider` (dataset local) | Alta | Planificada | Salida minima: carga de JSON local con validacion basica de schema y datos invalidos. |
 | PC-04 | Politica de no repeticion y fallback por dificultad | Media | Planificada | Salida minima: evita repetir puzzle inmediato; fallback controlado si tier vacio. |
 | PC-05 | Integrar provider con `MainViewModel`/`NewPuzzleCommand` | Alta | Planificada | Salida minima: Desktop deja de depender del puzzle de muestra fijo para `Nuevo Puzzle`. |
@@ -208,7 +208,7 @@ Orden recomendado de ejecucion del feature:
 
 | ID | Tarea | Prioridad | Estado | Nota |
 |---|---|---|---|---|
-| PD-01 | Definir esquema JSON final de consumo Desktop/Server (`schema_version`) | Alta | Planificada | Salida minima: contrato estable entre exportador y runtime. |
+| PD-01 | Definir esquema JSON final de consumo Desktop/Server (`schema_version`) | Alta | Completada | Implementado: `PuzzleDatasetDocument` (question_bank/solver_details/time_map) + doc `docs/SudokuArena/PuzzleDataset-Schema-v1.md`. |
 | PD-02 | Agregar exportador de lote MVP para runtime (`puzzles.runtime.v1.json`) | Alta | Planificada | Salida minima: archivo por dificultad con volumen inicial util para pruebas. |
 | PD-03 | Agregar validador de dataset en CI/local | Media | Propuesta | Salida minima: comando que falle si hay puzzles invalidos o dificultades inconsistentes. |
 | PD-04 | Versionado de pesos/umbrales y trazabilidad de lote | Media | Propuesta | Salida minima: metadatos `weights_version`, `thresholds_version`, fecha y fuente del lote. |
