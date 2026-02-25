@@ -6,7 +6,7 @@ Este documento sirve como registro vivo de:
 - lo pendiente,
 - y nuevas ideas para priorizar.
 
-Actualizado: 2026-02-24
+Actualizado: 2026-02-25
 
 ## Hecho
 - Arquitectura base por capas (`Domain`, `Application`, `Infrastructure`, `Server`, `Desktop`, `Sync.Worker`).
@@ -30,6 +30,12 @@ Actualizado: 2026-02-24
 - Worker de outbox para envio de eventos hacia servicio cloud.
 
 ## Parcial
+- Analisis tecnico incremental de app de referencia (Easy Sudoku) documentado en `docs/SudokuArena/Analisis-Referencia-EasySudoku.md`:
+  - ya extraidos contrato `GET/POST /sudoku/v1/activity` (request/response y campos parseados),
+  - scoring avanzado (selector old/new score, coeficientes por modo, bonus por tiempo/error/perfect/fill, AB hooks battle/explore),
+  - contratos DAO secundarios ya mapeados (`Dc`, `active_medal`, `battle_season`, `tournament_season`, `favourite`),
+  - escala de dificultad propuesta basada en solver-techniques/SE rate (con umbrales iniciales),
+  - pendiente aterrizar propuesta final para backend LAN/offline+sync y validar umbrales con dataset completo.
 - Desktop con modos LAN/Cloud: existe UI y comandos, falta conexion real completa a hub/API en flujo de partida.
 - Perfil de jugador: modelo base creado (`PlayerProfile`), sin casos de uso/API/UI persistidos de punta a punta.
 - Roles: existe gate temporal por `X-Role`, falta autenticacion/autorizacion real.
