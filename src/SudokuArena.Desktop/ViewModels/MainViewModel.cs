@@ -123,6 +123,8 @@ public partial class MainViewModel : ObservableObject
 
     public event EventHandler? GameLost;
 
+    public event EventHandler<CompletionUnitsEventArgs>? CompletionUnitsAchieved;
+
     public IReadOnlyList<int?> Cells => _cellsView;
 
     public IReadOnlyList<bool> GivenCells => _givenCellsView;
@@ -388,6 +390,12 @@ public partial class MainViewModel : ObservableObject
 
         RecalculateState();
         var isInvalidMove = _invalidCells[index] && value is not null;
+        var completionEventArgs = BuildCompletionEvent(index, value, isInvalidMove);
+
+        if (completionEventArgs is not null)
+        {
+            CompletionUnitsAchieved?.Invoke(this, completionEventArgs);
+        }
 
         if (isInvalidMove)
         {
@@ -608,7 +616,110 @@ public partial class MainViewModel : ObservableObject
             _themePreferenceStore?.SaveThemeMode(mode);
         }
     }
+
+    private CompletionUnitsEventArgs? BuildCompletionEvent(int index, int? value, bool isInvalidMove)
+    {
+        if (isInvalidMove || value is not int digit || digit is < 1 or > 9 || index is < 0 or >= 81)
+        {
+            return null;
+        }
+
+        var row = index / 9;
+        var col = index % 9;
+        var rowDone = IsRowCompleted(row);
+        var colDone = IsColumnCompleted(col);
+        var boxDone = IsBoxCompleted(row, col);
+        if (!rowDone && !colDone && !boxDone)
+        {
+            return null;
+        }
+
+        return new CompletionUnitsEventArgs(index, row, col, rowDone, colDone, boxDone);
+    }
+
+    private bool IsRowCompleted(int row)
+    {
+        var mask = 0;
+        for (var col = 0; col < 9; col++)
+        {
+            var value = _cells[(row * 9) + col];
+            if (value is not int digit || digit is < 1 or > 9)
+            {
+                return false;
+            }
+
+            var bit = 1 << digit;
+            if ((mask & bit) != 0)
+            {
+                return false;
+            }
+
+            mask |= bit;
+        }
+
+        return mask == 1022;
+    }
+
+    private bool IsColumnCompleted(int col)
+    {
+        var mask = 0;
+        for (var row = 0; row < 9; row++)
+        {
+            var value = _cells[(row * 9) + col];
+            if (value is not int digit || digit is < 1 or > 9)
+            {
+                return false;
+            }
+
+            var bit = 1 << digit;
+            if ((mask & bit) != 0)
+            {
+                return false;
+            }
+
+            mask |= bit;
+        }
+
+        return mask == 1022;
+    }
+
+    private bool IsBoxCompleted(int row, int col)
+    {
+        var mask = 0;
+        var rowStart = (row / 3) * 3;
+        var colStart = (col / 3) * 3;
+
+        for (var r = rowStart; r < rowStart + 3; r++)
+        {
+            for (var c = colStart; c < colStart + 3; c++)
+            {
+                var value = _cells[(r * 9) + c];
+                if (value is not int digit || digit is < 1 or > 9)
+                {
+                    return false;
+                }
+
+                var bit = 1 << digit;
+                if ((mask & bit) != 0)
+                {
+                    return false;
+                }
+
+                mask |= bit;
+            }
+        }
+
+        return mask == 1022;
+    }
 }
+
+public sealed record CompletionUnitsEventArgs(
+    int Index,
+    int Row,
+    int Column,
+    bool RowCompleted,
+    bool ColumnCompleted,
+    bool BoxCompleted);
 
 public partial class NumberOptionItem(int number) : ObservableObject
 {
