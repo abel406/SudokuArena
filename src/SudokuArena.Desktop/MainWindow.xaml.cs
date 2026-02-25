@@ -2,19 +2,23 @@ using System.Windows;
 using System.Windows.Threading;
 using SudokuArena.Desktop.Controls;
 using SudokuArena.Desktop.Dialogs;
+using SudokuArena.Desktop.Theming;
 using SudokuArena.Desktop.ViewModels;
+using DesktopThemeMode = SudokuArena.Desktop.Theming.ThemeMode;
 
 namespace SudokuArena.Desktop;
 
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
+    private readonly ThemeManager _themeManager;
     private readonly DispatcherTimer _clockTimer;
 
-    public MainWindow(MainViewModel viewModel)
+    public MainWindow(MainViewModel viewModel, ThemeManager themeManager)
     {
         InitializeComponent();
         _viewModel = viewModel;
+        _themeManager = themeManager;
         DataContext = viewModel;
 
         _clockTimer = new DispatcherTimer
@@ -30,6 +34,7 @@ public partial class MainWindow : Window
         _viewModel.GameWon += OnGameWon;
         _viewModel.GameLost += OnGameLost;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _themeManager.ThemeApplied += OnThemeApplied;
         Loaded += OnLoaded;
         Closed += OnClosed;
     }
@@ -48,6 +53,7 @@ public partial class MainWindow : Window
         _viewModel.GameWon -= OnGameWon;
         _viewModel.GameLost -= OnGameLost;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _themeManager.ThemeApplied -= OnThemeApplied;
     }
 
     private void OnBoardCellSelected(object? sender, int selectedCell)
@@ -136,5 +142,10 @@ public partial class MainWindow : Window
             _viewModel.TickClock();
             _clockTimer.Start();
         }
+    }
+
+    private void OnThemeApplied(DesktopThemeMode _)
+    {
+        BoardControl.InvalidateVisual();
     }
 }

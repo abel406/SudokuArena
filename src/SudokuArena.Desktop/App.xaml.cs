@@ -2,9 +2,11 @@ using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SudokuArena.Application.IoC;
+using SudokuArena.Desktop.Theming;
 using SudokuArena.Desktop.ViewModels;
 using SudokuArena.Infrastructure.IoC;
 using SudokuArena.Infrastructure.Persistence;
+using DesktopThemeMode = SudokuArena.Desktop.Theming.ThemeMode;
 
 namespace SudokuArena.Desktop;
 
@@ -20,6 +22,9 @@ public partial class App : System.Windows.Application
                 services.AddSudokuArenaApplication();
                 services.AddSudokuArenaInfrastructure(context.Configuration);
 
+                services.AddSingleton<ISystemThemeDetector, WindowsThemeDetector>();
+                services.AddSingleton<IThemePreferenceStore, JsonThemePreferenceStore>();
+                services.AddSingleton<ThemeManager>();
                 services.AddSingleton<MainViewModel>();
                 services.AddSingleton<MainWindow>();
             })
@@ -35,6 +40,11 @@ public partial class App : System.Windows.Application
         using var scope = _host.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<SudokuArenaDbContext>();
         dbContext.Database.EnsureCreated();
+
+        var themeManager = _host.Services.GetRequiredService<ThemeManager>();
+        var themePreferences = _host.Services.GetRequiredService<IThemePreferenceStore>();
+        var requestedThemeMode = themePreferences.LoadThemeMode() ?? DesktopThemeMode.System;
+        _ = themeManager.ApplyTheme(requestedThemeMode);
 
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
         mainWindow.Show();

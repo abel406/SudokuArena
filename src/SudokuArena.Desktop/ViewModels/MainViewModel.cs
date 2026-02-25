@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SudokuArena.Desktop.Theming;
 using SudokuArena.Domain.Models;
 
 namespace SudokuArena.Desktop.ViewModels;
@@ -22,16 +23,42 @@ public partial class MainViewModel : ObservableObject
     private DateTimeOffset? _clockPausedAtUtc;
     private TimeSpan _pausedClockDuration = TimeSpan.Zero;
     private bool _isDefeatDialogOpen;
+    private readonly ThemeManager? _themeManager;
+    private readonly IThemePreferenceStore? _themePreferenceStore;
 
     public MainViewModel()
-        : this(SudokuDefaults.SamplePuzzle)
+        : this(SudokuDefaults.SamplePuzzle, null, null)
     {
     }
 
     public MainViewModel(string puzzle)
+        : this(puzzle, null, null)
     {
+    }
+
+    public MainViewModel(ThemeManager themeManager)
+        : this(SudokuDefaults.SamplePuzzle, themeManager, null)
+    {
+    }
+
+    public MainViewModel(ThemeManager themeManager, IThemePreferenceStore themePreferenceStore)
+        : this(SudokuDefaults.SamplePuzzle, themeManager, themePreferenceStore)
+    {
+    }
+
+    private MainViewModel(
+        string puzzle,
+        ThemeManager? themeManager,
+        IThemePreferenceStore? themePreferenceStore)
+    {
+        _themeManager = themeManager;
+        _themePreferenceStore = themePreferenceStore;
         NumberOptions = new ObservableCollection<NumberOptionItem>(
             Enumerable.Range(1, 9).Select(x => new NumberOptionItem(x)));
+        ThemeModeOptions = Enum.GetValues<ThemeMode>();
+        var initialThemeMode = _themePreferenceStore?.LoadThemeMode() ?? ThemeMode.System;
+        _themeMode = initialThemeMode;
+        ApplyThemeSelection(initialThemeMode, persistSelection: false);
         LoadPuzzle(puzzle);
     }
 
@@ -80,7 +107,15 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isAwaitingDefeatDecision;
 
+    [ObservableProperty]
+    private ThemeMode _themeMode = ThemeMode.System;
+
+    [ObservableProperty]
+    private ThemeMode _effectiveThemeMode = ThemeMode.Light;
+
     public ObservableCollection<NumberOptionItem> NumberOptions { get; }
+
+    public IReadOnlyList<ThemeMode> ThemeModeOptions { get; }
 
     public event EventHandler? DefeatThresholdReached;
 
@@ -155,6 +190,11 @@ public partial class MainViewModel : ObservableObject
             SelectedNumber = 0;
             StatusMessage = "Modo borrar activado.";
         }
+    }
+
+    partial void OnThemeModeChanged(ThemeMode value)
+    {
+        ApplyThemeSelection(value, persistSelection: true);
     }
 
     [RelayCommand]
@@ -551,6 +591,23 @@ public partial class MainViewModel : ObservableObject
     }
 
     private sealed record MoveEntry(int Index, int? PreviousValue);
+
+    private void ApplyThemeSelection(ThemeMode mode, bool persistSelection)
+    {
+        if (_themeManager is null)
+        {
+            EffectiveThemeMode = mode is ThemeMode.Dark ? ThemeMode.Dark : ThemeMode.Light;
+        }
+        else
+        {
+            EffectiveThemeMode = _themeManager.ApplyTheme(mode);
+        }
+
+        if (persistSelection)
+        {
+            _themePreferenceStore?.SaveThemeMode(mode);
+        }
+    }
 }
 
 public partial class NumberOptionItem(int number) : ObservableObject

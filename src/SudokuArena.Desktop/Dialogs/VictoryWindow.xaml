@@ -6,7 +6,7 @@
         Height="360"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource CanvasBackgroundBrush}">
+        Background="{DynamicResource CanvasBackgroundBrush}">
     <Window.Resources>
         <DrawingImage x:Key="CelebrationImage">
             <DrawingImage.Drawing>
@@ -22,7 +22,7 @@
     <Border Margin="20"
             Padding="20"
             CornerRadius="12"
-            Background="{StaticResource SurfaceBrush}">
+            Background="{DynamicResource SurfaceBrush}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -34,7 +34,7 @@
             <TextBlock Text="VICTORIA"
                        FontSize="30"
                        FontWeight="Bold"
-                       Foreground="{StaticResource PrimaryBrush}"
+                       Foreground="{DynamicResource PrimaryBrush}"
                        HorizontalAlignment="Center" />
 
             <StackPanel Grid.Row="1"
@@ -43,11 +43,11 @@
                 <TextBlock Text="{Binding ScoreText}"
                            FontSize="23"
                            FontWeight="Bold"
-                           Foreground="{StaticResource AccentBrush}"
+                           Foreground="{DynamicResource AccentBrush}"
                            HorizontalAlignment="Center" />
                 <TextBlock Text="{Binding DifficultyText}"
                            FontSize="15"
-                           Foreground="{StaticResource TextBrush}"
+                           Foreground="{DynamicResource TextBrush}"
                            HorizontalAlignment="Center" />
             </StackPanel>
 

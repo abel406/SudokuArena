@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:SudokuArena.Desktop.Controls"
         mc:Ignorable="d"
-        Background="{StaticResource CanvasBackgroundBrush}"
+        Background="{DynamicResource CanvasBackgroundBrush}"
         Title="Sudoku Arena"
         Height="820"
         Width="1280"
@@ -25,16 +25,16 @@
         <Border Grid.ColumnSpan="2"
                 CornerRadius="14"
                 Padding="18"
-                Background="{StaticResource SurfaceBrush}">
+                Background="{DynamicResource SurfaceBrush}">
             <DockPanel>
                 <TextBlock Text="SUDOKU ARENA"
                            FontSize="28"
                            FontWeight="Bold"
-                           Foreground="{StaticResource TextBrush}" />
+                           Foreground="{DynamicResource TextBrush}" />
                 <TextBlock Text="{Binding StatusMessage}"
                            DockPanel.Dock="Right"
                            VerticalAlignment="Center"
-                           Foreground="{StaticResource AccentBrush}"
+                           Foreground="{DynamicResource AccentBrush}"
                            FontWeight="SemiBold" />
             </DockPanel>
         </Border>
@@ -43,7 +43,7 @@
                 Margin="0,18,18,0"
                 Padding="16"
                 CornerRadius="14"
-                Background="{StaticResource SurfaceBrush}">
+                Background="{DynamicResource SurfaceBrush}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -61,7 +61,7 @@
 
                     <TextBlock Text="{Binding ErrorSummary}"
                                VerticalAlignment="Center"
-                               Foreground="{StaticResource TextBrush}"
+                               Foreground="{DynamicResource TextBrush}"
                                FontWeight="SemiBold" />
 
                     <StackPanel Grid.Column="1" HorizontalAlignment="Center">
@@ -69,17 +69,17 @@
                                    HorizontalAlignment="Center"
                                    FontWeight="Bold"
                                    FontSize="23"
-                                   Foreground="{StaticResource PrimaryBrush}" />
+                                   Foreground="{DynamicResource PrimaryBrush}" />
                         <TextBlock Text="{Binding DifficultyLabel}"
                                    HorizontalAlignment="Center"
-                                   Foreground="{StaticResource TextBrush}" />
+                                   Foreground="{DynamicResource TextBrush}" />
                     </StackPanel>
 
                     <TextBlock Grid.Column="2"
                                Text="{Binding ElapsedTimeText}"
                                HorizontalAlignment="Right"
                                VerticalAlignment="Center"
-                               Foreground="{StaticResource TextBrush}"
+                               Foreground="{DynamicResource TextBrush}"
                                FontWeight="SemiBold" />
                 </Grid>
 
@@ -139,7 +139,7 @@
                                 <Style.Triggers>
                                     <Trigger Property="IsChecked" Value="True">
                                         <Setter Property="Content" Value="Autocompletado: ON" />
-                                        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
                                     </Trigger>
                                 </Style.Triggers>
                             </Style>
@@ -210,16 +210,33 @@
                 Margin="0,18,0,0"
                 Padding="18"
                 CornerRadius="14"
-                Background="{StaticResource SurfaceBrush}">
+                Background="{DynamicResource SurfaceBrush}">
             <StackPanel>
+                <TextBlock Text="Tema"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextBrush}" />
+                <ComboBox Margin="0,6,0,12"
+                          ItemsSource="{Binding ThemeModeOptions}"
+                          SelectedItem="{Binding ThemeMode, Mode=TwoWay}" />
+
+                <Border Margin="0,0,0,12"
+                        Padding="8"
+                        CornerRadius="8"
+                        Background="#00000000"
+                        BorderBrush="#7A838F"
+                        BorderThickness="1">
+                    <TextBlock Text="{Binding EffectiveThemeMode, StringFormat=Tema activo: {0}}"
+                               Foreground="{DynamicResource TextBrush}" />
+                </Border>
+
                 <TextBlock Text="Jugador"
                            FontWeight="SemiBold"
-                           Foreground="{StaticResource TextBrush}" />
+                           Foreground="{DynamicResource TextBrush}" />
                 <TextBox Text="{Binding PlayerEmail}" Margin="0,6,0,12" />
 
                 <TextBlock Text="Oponente"
                            FontWeight="SemiBold"
-                           Foreground="{StaticResource TextBrush}" />
+                           Foreground="{DynamicResource TextBrush}" />
                 <TextBox Text="{Binding OpponentEmail}" Margin="0,6,0,12" />
 
                 <Button Content="Nuevo Puzzle" Command="{Binding NewPuzzleCommand}" />
@@ -231,9 +248,9 @@
                 <Border Margin="0,12,0,0"
                         Padding="12"
                         CornerRadius="10"
-                        Background="#F1ECE1">
+                        Background="{DynamicResource CanvasBackgroundBrush}">
                     <TextBlock Text="{Binding IsLanMode, StringFormat=Modo activo: {0}}"
-                               Foreground="{StaticResource TextBrush}" />
+                               Foreground="{DynamicResource TextBrush}" />
                 </Border>
             </StackPanel>
         </Border>
@@ -241,7 +258,7 @@
         <TextBlock Grid.Row="2"
                    Grid.ColumnSpan="2"
                    Margin="0,14,0,0"
-                   Foreground="{StaticResource TextBrush}"
+                   Foreground="{DynamicResource TextBrush}"
                    Text="Controles: click izquierdo escribe, click derecho quita foco de celda, Ctrl+1..9 fija número sin escribir; Borrar funciona como modo herramienta, Autocompletado es placeholder." />
     </Grid>
 </Window>

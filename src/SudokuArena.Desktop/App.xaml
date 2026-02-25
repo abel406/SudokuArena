@@ -2,25 +2,19 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
-        <Color x:Key="CanvasBackgroundColor">#F5F3EC</Color>
-        <Color x:Key="SurfaceColor">#FFFDF8</Color>
-        <Color x:Key="PrimaryColor">#1C6E8C</Color>
-        <Color x:Key="AccentColor">#E07A5F</Color>
-        <Color x:Key="TextColor">#2D3142</Color>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/SudokuArena.Desktop;component/Themes/Theme.Light.xaml" />
+            </ResourceDictionary.MergedDictionaries>
 
-        <SolidColorBrush x:Key="CanvasBackgroundBrush" Color="{StaticResource CanvasBackgroundColor}" />
-        <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
-        <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
-        <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
-        <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}" />
-
-        <Style TargetType="Button">
-            <Setter Property="Margin" Value="0,0,0,10" />
-            <Setter Property="Padding" Value="12,8" />
-            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-        </Style>
+            <Style TargetType="Button">
+                <Setter Property="Margin" Value="0,0,0,10" />
+                <Setter Property="Padding" Value="12,8" />
+                <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
