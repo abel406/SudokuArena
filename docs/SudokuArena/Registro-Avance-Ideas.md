@@ -35,6 +35,7 @@ Actualizado: 2026-02-25
   - scoring avanzado (selector old/new score, coeficientes por modo, bonus por tiempo/error/perfect/fill, AB hooks battle/explore),
   - contratos DAO secundarios ya mapeados (`Dc`, `active_medal`, `battle_season`, `tournament_season`, `favourite`),
   - `defaultQbSolverDetails.json` ya descifrado y analizado completo (9369 puzzles),
+  - mapa de formatos de bancos (`defaultQb*`, `question_time_map`, `rank_active_question`) ya documentado para diseno de dataset propio,
   - escala de dificultad calibrada con percentiles reales (`weighted_se`, `max_rate`, `advanced_hits`) y umbrales recomendados de 6 tiers,
   - pendiente aterrizar propuesta final para backend LAN/offline+sync.
 - Desktop con modos LAN/Cloud: existe UI y comandos, falta conexion real completa a hub/API en flujo de partida.
@@ -64,9 +65,24 @@ Actualizado: 2026-02-25
 ## Ideas Nuevas (Backlog Vivo)
 Regla: agregar nuevas ideas aqui antes de implementar, con prioridad y criterio de aceptacion.
 
-| Idea | Prioridad | Estado | Nota |
-|---|---|---|---|
-|  | Alta / Media / Baja | Propuesta / En analisis / Planificada / En curso / Hecha |  |
+### Feature: Dataset y Solver Propio (`tools/puzzle_dataset`)
+
+| ID | Tarea | Prioridad | Estado | Nota |
+|---|---|---|---|---|
+| DS-01 | Generador de puzzles propio con unicidad garantizada | Alta | Planificada | Salida minima: genera `N` puzzles 9x9 validos y prueba automatica confirma solucion unica por puzzle. |
+| DS-02 | Catalogo de tecnicas del solver (clase propia + i18n + pesos) | Alta | Planificada | Salida minima: `TechniqueId`/catalogo versionado con textos propios y pesos configurables sin dependencias de terceros. |
+| DS-03 | Solver instrumentado para metricas de dificultad | Alta | Planificada | Salida minima: por puzzle exporta `weighted_se`, `max_rate`, `advanced_hits` y conteo por tecnica. |
+| DS-04 | Calibrador automatico de pesos/umbrales | Alta | Propuesta | Salida minima: optimiza pesos con restricciones (monotonia/suavidad), genera tabla `v1` y reporte de distribucion/correlacion para validacion. Seguir `docs/SudokuArena/Dataset-Calibracion-Playbook.md`. |
+| DS-05 | Estimador de umbrales de tiempo por puzzle | Media | Propuesta | Salida minima: genera `time_map[qid]=[t1,t2,t3,t4]` con metodo reproducible y validacion estadistica basica. Seguir `docs/SudokuArena/Dataset-Calibracion-Playbook.md`. |
+| DS-06 | Exportador de dataset propio unificado (JSON unico con `question_bank` + `solver_details` + `time_map`) | Alta | Planificada | Salida minima: genera `puzzle_dataset.v1.json` con esquema versionado y validado por tests. |
+
+Orden recomendado de ejecucion del feature:
+1. `DS-01`
+2. `DS-02`
+3. `DS-03`
+4. `DS-04`
+5. `DS-05`
+6. `DS-06`
 
 ## Proxima Ola Recomendada
 1. Conectar desktop realmente a server (SignalR + API) y definir flujo LAN de punta a punta.

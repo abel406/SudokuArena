@@ -498,3 +498,75 @@ Distribucion resultante con esos umbrales (dataset referencia):
 
 Razon tecnica:
 - Respeta el ranking relativo de tecnicas (`sortedSolverKeys` + `SE rate`) y evita sesgo extremo hacia `Beginner`, dejando una distribucion util para progresion.
+- Para calibraciones futuras (pesos/umbrales/time-map), usar el proceso versionado en `docs/SudokuArena/Dataset-Calibracion-Playbook.md`.
+
+## 16) Mapa de datos de puzzle (confirmado)
+
+### 16.1 Codificacion del tablero (`question`)
+
+- El `question` base es una cadena compacta de celdas:
+  - `9x9`: longitud `81`
+  - `6x6`: longitud `36`
+  - `16x16`: longitud `256`
+- Semantica por caracter:
+  - `A..I` (o `A..F`, `A..P`): celda `given` (no editable)
+  - `a..i` (o `a..f`, `a..p`): celda editable
+  - valor numerico: `answerNum = (char - 'A'/'a') + 1`
+- Evidencia:
+  - parse de mayus/minus a `canEdit + answerNum`:
+    - `sources/com/meevii/history/HistorySudokuView.java:145-154`
+    - `sources/com/meevii/guide/view/GuideSudokuView.java:335-347`
+
+### 16.2 Formatos de bancos `defaultQb*`
+
+- Todos los bancos se descifran con el mismo flujo AES nativo (`nativeGetKey` + AES/CBC/PKCS5 + IV cero).
+- `defaultQb.json`, `defaultQb_lion_*.json`, `defaultQb_lgn*.json`:
+  - estructura: `{"<layer>": ["<question>_<index>_<winRate>", ...], ...}`
+  - en algunos casos `question` viene como `"<question>;<killerGroup>"`.
+  - parser:
+    - split por `_` y parse de `winRate`: `sources/lf/k.java:39-53`, `sources/lf/l.java:29-37`
+    - split por `;` para extraer `killerGroup`: `sources/lf/k.java:151-156`
+- `defaultQbRandom*.json`:
+  - estructura: `{"easy":[ "<question>", ...], ...}`
+  - parser crea `QuestionConfigBean(question, id, winRate=0)`:
+    - `sources/lf/r.java:101-103`
+- `defaultQbRank*.json`:
+  - estructura: `{"easy":[ "<question>_<rank>", ...], ...}`
+  - parser usa `rank = split[1]`:
+    - `sources/lf/o.java:281-291`
+- `defaultQbConfrontation.json`:
+  - estructura observada: `{"easy":[ "<question>_<x>_<winRate>", ...], ...}`
+  - parser toma `winRate = split[2]`:
+    - `sources/lf/h.java:173-181`
+- `defaultQbEBAndJY.json`:
+  - estructura: `{"easy":[ "<question>", ...], ...}`
+  - parser usa indice de array para construir id:
+    - `sources/lf/p.java:24-26`
+
+### 16.3 Que representa cada dataset auxiliar
+
+- `defaultQbSolverDetails.json` (ya descifrado):
+  - `Map<qid, Map<technique, count>>`
+  - no guarda pasos de hint, guarda conteo agregado por tecnica.
+  - evidencia parse: `sources/com/meevii/abtest/helper/SuccessSolutionSummaryAbTestHelper.java:149`
+- `question_time_map.json`:
+  - `Map<qid, [t1,t2,t3,t4]>` (4 umbrales de tiempo por puzzle)
+  - usado por score de tiempo (`10/8/6/4/2`): `sources/com/meevii/sudoku/plugin/SudokuScore.java:236-247`
+- `rank_active_question.json`:
+  - lista de objetos `{difficulty, level, reward}` para recompensas/rank activity.
+
+### 16.4 Id de partida vs id de puzzle
+
+- El `questionId` de runtime no es estable global:
+  - se arma como `mode + randomDigit + paddedIndex`.
+  - evidencia: `sources/com/meevii/data/a.java:14-29`
+- El identificador estable de puzzle es el `question` string (qid logico), que es la clave de `question_time_map` y `solverDetails`.
+
+### 16.5 Implicacion para SudokuArena (diseno propio recomendado)
+
+- Si generamos dataset propio, necesitamos al menos:
+  - `question` (canonico, estable),
+  - `difficulty metrics` (`weighted_se`, `max_rate`, `advanced_hits`),
+  - `time thresholds` por puzzle (equivalente a `question_time_map`),
+  - opcional: `solverDetails` por tecnica para analytics y UI de resumen.
+- Las pistas "paso a paso" no estan preguardadas en estos JSON; se derivan en runtime por motor de hints/solver.
