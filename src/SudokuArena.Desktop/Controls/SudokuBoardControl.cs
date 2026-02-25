@@ -2,12 +2,30 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
+using SudokuArena.Desktop.Animations;
 using SudokuArena.Desktop.Theming;
 
 namespace SudokuArena.Desktop.Controls;
 
 public sealed class SudokuBoardControl : FrameworkElement
 {
+    private const double CompletionDefaultMaxOpacity = 0.58d;
+    private const double CompletionDefaultRingDelayMs = 85d;
+    private const double CompletionDefaultPulseDurationMs = 320d;
+
+    private readonly DispatcherTimer _completionTimer = new()
+    {
+        Interval = TimeSpan.FromMilliseconds(16)
+    };
+
+    private DateTimeOffset _completionStartedUtc;
+    private IReadOnlyDictionary<int, int> _completionDistances = new Dictionary<int, int>();
+    private int _completionMaxDistance;
+    private double _completionPulseOpacity = CompletionDefaultMaxOpacity;
+    private double _completionRingDelayMs = CompletionDefaultRingDelayMs;
+    private double _completionPulseDurationMs = CompletionDefaultPulseDurationMs;
+
     public static readonly DependencyProperty CellsProperty = DependencyProperty.Register(
         nameof(Cells),
         typeof(IReadOnlyList<int?>),
@@ -74,6 +92,34 @@ public sealed class SudokuBoardControl : FrameworkElement
 
     public event EventHandler<int>? NumberQuickSelected;
 
+    public SudokuBoardControl()
+    {
+        _completionTimer.Tick += OnCompletionTick;
+        Unloaded += (_, _) => _completionTimer.Stop();
+    }
+
+    public void StartCompletionAnimation(int originIndex, bool rowCompleted, bool columnCompleted, bool boxCompleted)
+    {
+        var distances = CompletionAnimationPlanner.BuildDistances(originIndex, rowCompleted, columnCompleted, boxCompleted);
+        if (distances.Count == 0)
+        {
+            return;
+        }
+
+        _completionPulseOpacity = CompletionDefaultMaxOpacity;
+        _completionRingDelayMs = CompletionDefaultRingDelayMs;
+        _completionPulseDurationMs = CompletionDefaultPulseDurationMs;
+        _completionDistances = distances;
+        _completionMaxDistance = distances.Values.Max();
+        _completionStartedUtc = DateTimeOffset.UtcNow;
+        if (!_completionTimer.IsEnabled)
+        {
+            _completionTimer.Start();
+        }
+
+        InvalidateVisual();
+    }
+
     protected override void OnRender(DrawingContext dc)
     {
         base.OnRender(dc);
@@ -100,6 +146,7 @@ public sealed class SudokuBoardControl : FrameworkElement
         }
 
         DrawSelectedNumberHighlights(dc, cell, palette);
+        DrawCompletionPulse(dc, cell, palette);
 
         if (SelectedIndex is >= 0 and < 81)
         {
@@ -300,6 +347,67 @@ public sealed class SudokuBoardControl : FrameworkElement
         }
 
         return givens[index] ? palette.GivenTextBrush : palette.UserTextBrush;
+    }
+
+    private void DrawCompletionPulse(DrawingContext dc, double cell, BoardThemePalette palette)
+    {
+        if (_completionDistances.Count == 0)
+        {
+            return;
+        }
+
+        var elapsedMs = (DateTimeOffset.UtcNow - _completionStartedUtc).TotalMilliseconds;
+        if (elapsedMs < 0)
+        {
+            return;
+        }
+
+        var baseColor = palette.CompletionPulseBrush is SolidColorBrush solidBrush
+            ? solidBrush.Color
+            : Color.FromRgb(74, 120, 194);
+
+        foreach (var entry in _completionDistances)
+        {
+            var progress = (elapsedMs - (entry.Value * _completionRingDelayMs)) / _completionPulseDurationMs;
+            if (progress is < 0 or > 1)
+            {
+                continue;
+            }
+
+            var intensity = progress < 0.5
+                ? progress * 2
+                : (1 - progress) * 2;
+            if (intensity <= 0)
+            {
+                continue;
+            }
+
+            var alpha = (byte)Math.Clamp((int)(255 * _completionPulseOpacity * intensity), 0, 255);
+            var pulseBrush = new SolidColorBrush(Color.FromArgb(alpha, baseColor.R, baseColor.G, baseColor.B));
+            var row = entry.Key / 9;
+            var col = entry.Key % 9;
+            dc.DrawRectangle(pulseBrush, null, new Rect(col * cell, row * cell, cell, cell));
+        }
+    }
+
+    private void OnCompletionTick(object? sender, EventArgs e)
+    {
+        if (_completionDistances.Count == 0)
+        {
+            _completionTimer.Stop();
+            return;
+        }
+
+        var totalDurationMs = (_completionMaxDistance * _completionRingDelayMs) + _completionPulseDurationMs;
+        var elapsedMs = (DateTimeOffset.UtcNow - _completionStartedUtc).TotalMilliseconds;
+        if (elapsedMs > totalDurationMs)
+        {
+            _completionDistances = new Dictionary<int, int>();
+            _completionMaxDistance = 0;
+            _completionTimer.Stop();
+        }
+
+        InvalidateVisual();
     }
 }
 

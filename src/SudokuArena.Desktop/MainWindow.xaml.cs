@@ -33,6 +33,7 @@ public partial class MainWindow : Window
         _viewModel.DefeatThresholdReached += OnDefeatThresholdReached;
         _viewModel.GameWon += OnGameWon;
         _viewModel.GameLost += OnGameLost;
+        _viewModel.CompletionUnitsAchieved += OnCompletionUnitsAchieved;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _themeManager.ThemeApplied += OnThemeApplied;
         Loaded += OnLoaded;
@@ -52,6 +53,7 @@ public partial class MainWindow : Window
         _viewModel.DefeatThresholdReached -= OnDefeatThresholdReached;
         _viewModel.GameWon -= OnGameWon;
         _viewModel.GameLost -= OnGameLost;
+        _viewModel.CompletionUnitsAchieved -= OnCompletionUnitsAchieved;
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _themeManager.ThemeApplied -= OnThemeApplied;
     }
@@ -147,5 +149,10 @@ public partial class MainWindow : Window
     private void OnThemeApplied(DesktopThemeMode _)
     {
         BoardControl.InvalidateVisual();
+    }
+
+    private void OnCompletionUnitsAchieved(object? sender, CompletionUnitsEventArgs e)
+    {
+        BoardControl.StartCompletionAnimation(e.Index, e.RowCompleted, e.ColumnCompleted, e.BoxCompleted);
     }
 }

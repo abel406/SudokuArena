@@ -16,6 +16,7 @@
     <SolidColorBrush x:Key="BoardRelatedGroupBrush" Color="#ECEFF4" />
     <SolidColorBrush x:Key="BoardActiveCellBrush" Color="#A9CBFF" />
     <SolidColorBrush x:Key="BoardMatchingDigitBrush" Color="#A9CBFF" />
+    <SolidColorBrush x:Key="BoardCompletionPulseBrush" Color="#4A78C2" />
     <SolidColorBrush x:Key="BoardGridMajorBrush" Color="#768090" />
     <SolidColorBrush x:Key="BoardGridMinorBrush" Color="#C0C7D2" />
     <SolidColorBrush x:Key="BoardConflictTextBrush" Color="#D73359" />

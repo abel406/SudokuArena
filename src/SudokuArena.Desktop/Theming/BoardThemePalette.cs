@@ -9,6 +9,7 @@ public sealed class BoardThemePalette
     public required Brush RelatedGroupBrush { get; init; }
     public required Brush ActiveCellBrush { get; init; }
     public required Brush MatchingDigitBrush { get; init; }
+    public required Brush CompletionPulseBrush { get; init; }
     public required Brush GridMajorBrush { get; init; }
     public required Brush GridMinorBrush { get; init; }
     public required Brush ConflictTextBrush { get; init; }
@@ -23,6 +24,7 @@ public sealed class BoardThemePalette
             RelatedGroupBrush = GetBrush(element, ThemeResourceKeys.BoardRelatedGroupBrush, Color.FromArgb(86, 216, 220, 226)),
             ActiveCellBrush = GetBrush(element, ThemeResourceKeys.BoardActiveCellBrush, Color.FromArgb(96, 139, 176, 237)),
             MatchingDigitBrush = GetBrush(element, ThemeResourceKeys.BoardMatchingDigitBrush, Color.FromArgb(96, 139, 176, 237)),
+            CompletionPulseBrush = GetBrush(element, ThemeResourceKeys.BoardCompletionPulseBrush, Color.FromArgb(160, 139, 176, 237)),
             GridMajorBrush = GetBrush(element, ThemeResourceKeys.BoardGridMajorBrush, Color.FromRgb(117, 123, 135)),
             GridMinorBrush = GetBrush(element, ThemeResourceKeys.BoardGridMinorBrush, Color.FromRgb(186, 191, 201)),
             ConflictTextBrush = GetBrush(element, ThemeResourceKeys.BoardConflictTextBrush, Color.FromRgb(201, 41, 41)),
