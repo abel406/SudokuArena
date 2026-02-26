@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SudokuArena.Application.AutoComplete;
 using SudokuArena.Application.Puzzles;
+using SudokuArena.Desktop.Telemetry;
 using SudokuArena.Desktop.Theming;
 using SudokuArena.Domain.Models;
 
@@ -32,39 +33,49 @@ public partial class MainViewModel : ObservableObject
     private readonly IThemePreferenceStore? _themePreferenceStore;
     private readonly IPuzzleProvider? _puzzleProvider;
     private readonly IAutoCompletePolicyEvaluator? _autoCompletePolicyEvaluator;
+    private readonly IAutoCompleteDiagnosticsSink? _autoCompleteDiagnosticsSink;
 
     public MainViewModel()
-        : this(SudokuDefaults.SamplePuzzle, null, null, null, null, null)
+        : this(SudokuDefaults.SamplePuzzle, null, null, null, null, null, null)
     {
     }
 
     public MainViewModel(string puzzle)
-        : this(puzzle, null, null, null, null, null)
+        : this(puzzle, null, null, null, null, null, null)
     {
     }
 
     public MainViewModel(string puzzle, string solution)
-        : this(puzzle, solution, null, null, null, null)
+        : this(puzzle, solution, null, null, null, null, null)
     {
     }
 
     public MainViewModel(string puzzle, string solution, IAutoCompletePolicyEvaluator autoCompletePolicyEvaluator)
-        : this(puzzle, solution, null, null, null, autoCompletePolicyEvaluator)
+        : this(puzzle, solution, null, null, null, autoCompletePolicyEvaluator, null)
+    {
+    }
+
+    public MainViewModel(
+        string puzzle,
+        string solution,
+        IAutoCompletePolicyEvaluator autoCompletePolicyEvaluator,
+        IAutoCompleteDiagnosticsSink autoCompleteDiagnosticsSink)
+        : this(puzzle, solution, null, null, null, autoCompletePolicyEvaluator, autoCompleteDiagnosticsSink)
     {
     }
 
     public MainViewModel(ThemeManager themeManager)
-        : this(SudokuDefaults.SamplePuzzle, null, themeManager, null, null, null)
+        : this(SudokuDefaults.SamplePuzzle, null, themeManager, null, null, null, null)
     {
     }
 
     public MainViewModel(ThemeManager themeManager, IThemePreferenceStore themePreferenceStore)
-        : this(SudokuDefaults.SamplePuzzle, null, themeManager, themePreferenceStore, null, null)
+        : this(SudokuDefaults.SamplePuzzle, null, themeManager, themePreferenceStore, null, null, null)
     {
     }
 
     public MainViewModel(IPuzzleProvider puzzleProvider)
-        : this(SudokuDefaults.SamplePuzzle, null, null, null, puzzleProvider, null)
+        : this(SudokuDefaults.SamplePuzzle, null, null, null, puzzleProvider, null, null)
     {
     }
 
@@ -72,7 +83,7 @@ public partial class MainViewModel : ObservableObject
         ThemeManager themeManager,
         IThemePreferenceStore themePreferenceStore,
         IPuzzleProvider puzzleProvider)
-        : this(SudokuDefaults.SamplePuzzle, null, themeManager, themePreferenceStore, puzzleProvider, null)
+        : this(SudokuDefaults.SamplePuzzle, null, themeManager, themePreferenceStore, puzzleProvider, null, null)
     {
     }
 
@@ -87,7 +98,25 @@ public partial class MainViewModel : ObservableObject
             themeManager,
             themePreferenceStore,
             puzzleProvider,
-            autoCompletePolicyEvaluator)
+            autoCompletePolicyEvaluator,
+            null)
+    {
+    }
+
+    public MainViewModel(
+        ThemeManager themeManager,
+        IThemePreferenceStore themePreferenceStore,
+        IPuzzleProvider puzzleProvider,
+        IAutoCompletePolicyEvaluator autoCompletePolicyEvaluator,
+        IAutoCompleteDiagnosticsSink autoCompleteDiagnosticsSink)
+        : this(
+            SudokuDefaults.SamplePuzzle,
+            null,
+            themeManager,
+            themePreferenceStore,
+            puzzleProvider,
+            autoCompletePolicyEvaluator,
+            autoCompleteDiagnosticsSink)
     {
     }
 
@@ -97,12 +126,14 @@ public partial class MainViewModel : ObservableObject
         ThemeManager? themeManager,
         IThemePreferenceStore? themePreferenceStore,
         IPuzzleProvider? puzzleProvider = null,
-        IAutoCompletePolicyEvaluator? autoCompletePolicyEvaluator = null)
+        IAutoCompletePolicyEvaluator? autoCompletePolicyEvaluator = null,
+        IAutoCompleteDiagnosticsSink? autoCompleteDiagnosticsSink = null)
     {
         _themeManager = themeManager;
         _themePreferenceStore = themePreferenceStore;
         _puzzleProvider = puzzleProvider;
         _autoCompletePolicyEvaluator = autoCompletePolicyEvaluator;
+        _autoCompleteDiagnosticsSink = autoCompleteDiagnosticsSink;
         NumberOptions = new ObservableCollection<NumberOptionItem>(
             Enumerable.Range(1, 9).Select(x => new NumberOptionItem(x)));
         ThemeModeOptions = Enum.GetValues<ThemeMode>();
@@ -506,6 +537,7 @@ public partial class MainViewModel : ObservableObject
         AutoCompleteSessionState = AutoCompleteSessionState.Running;
         AutoCompleteStarts++;
         EvaluateAutoCompleteSession();
+        RecordAutoCompleteDiagnostic("start");
         StatusMessage = $"Autocompletado en progreso ({AutoCompleteProgressText}).";
     }
 
@@ -522,6 +554,7 @@ public partial class MainViewModel : ObservableObject
         ClearAutoCompleteQueue();
         AutoCompleteSessionState = AutoCompleteSessionState.Cancelled;
         EvaluateAutoCompleteSession();
+        RecordAutoCompleteDiagnostic("cancel");
         StatusMessage = "Autocompletado cancelado para esta partida.";
     }
 
@@ -561,6 +594,7 @@ public partial class MainViewModel : ObservableObject
                 AutoCompleteCurrentDigit = 0;
                 AutoCompleteSessionState = AutoCompleteSessionState.Finished;
                 EvaluateAutoCompleteSession();
+                RecordAutoCompleteDiagnostic("finish");
                 StatusMessage = "Autocompletado de sesion finalizado.";
             }
 
@@ -570,6 +604,7 @@ public partial class MainViewModel : ObservableObject
         AutoCompleteCurrentDigit = 0;
         AutoCompleteSessionState = AutoCompleteSessionState.Finished;
         EvaluateAutoCompleteSession();
+        RecordAutoCompleteDiagnostic("finish");
         StatusMessage = "Autocompletado de sesion finalizado.";
     }
 
@@ -1315,6 +1350,18 @@ public partial class MainViewModel : ObservableObject
             AutoCompleteStarts,
             AutoCompleteCancels,
             AutoCompleteFilledCells));
+    }
+
+    private void RecordAutoCompleteDiagnostic(string eventType)
+    {
+        _autoCompleteDiagnosticsSink?.Record(new AutoCompleteDiagnosticEvent(
+            DateTimeOffset.UtcNow,
+            eventType,
+            SelectedDifficultyTier.ToString(),
+            AutoCompleteRemainingToSolve,
+            AutoCompleteQueueCompleted,
+            AutoCompleteQueueTotal,
+            AutoCompleteTickIntervalMilliseconds));
     }
 }
 

@@ -1,5 +1,6 @@
 using SudokuArena.Application.AutoComplete;
 using SudokuArena.Application.Puzzles;
+using SudokuArena.Desktop.Telemetry;
 using SudokuArena.Desktop.Theming;
 using SudokuArena.Desktop.ViewModels;
 
@@ -276,6 +277,27 @@ public sealed class MainViewModelAutoCompleteTests
     }
 
     [Fact]
+    public void AutoCompleteSession_ShouldRecordDiagnosticEvents()
+    {
+        var sink = new FakeDiagnosticsSink();
+        var viewModel = new MainViewModel(
+            PuzzleWithNineGaps,
+            SolvedBoard,
+            new AutoCompletePolicyEvaluator(),
+            sink)
+        {
+            AutoCompleteEnabled = true
+        };
+
+        viewModel.StartAutoCompleteSessionCommand.Execute(null);
+        viewModel.CancelAutoCompleteSessionCommand.Execute(null);
+
+        Assert.Equal(2, sink.Events.Count);
+        Assert.Equal("start", sink.Events[0].EventType);
+        Assert.Equal("cancel", sink.Events[1].EventType);
+    }
+
+    [Fact]
     public void CancelAutoCompleteSession_ShouldStopRunningSession_AndCountCancellation()
     {
         var viewModel = new MainViewModel(PuzzleWithNineGaps, SolvedBoard)
@@ -348,6 +370,16 @@ public sealed class MainViewModelAutoCompleteTests
         public void SaveAutoCompleteTelemetry(AutoCompleteTelemetrySnapshot snapshot)
         {
             LastTelemetry = snapshot;
+        }
+    }
+
+    private sealed class FakeDiagnosticsSink : IAutoCompleteDiagnosticsSink
+    {
+        public List<AutoCompleteDiagnosticEvent> Events { get; } = [];
+
+        public void Record(AutoCompleteDiagnosticEvent diagnosticEvent)
+        {
+            Events.Add(diagnosticEvent);
         }
     }
 }

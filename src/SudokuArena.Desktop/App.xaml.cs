@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using SudokuArena.Application.IoC;
 using SudokuArena.Application.Puzzles;
 using SudokuArena.Desktop.Theming;
+using SudokuArena.Desktop.Telemetry;
 using SudokuArena.Desktop.ViewModels;
 using SudokuArena.Infrastructure.IoC;
 using SudokuArena.Infrastructure.Persistence;
@@ -28,6 +29,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<ISystemThemeDetector, WindowsThemeDetector>();
                 services.AddSingleton<IThemePreferenceStore, JsonThemePreferenceStore>();
                 services.AddSingleton<ThemeManager>();
+                services.AddSingleton<IAutoCompleteDiagnosticsSink, JsonLineAutoCompleteDiagnosticsSink>();
                 services.AddSingleton<IPuzzleProvider>(_ =>
                 {
                     var localSeedPath = Path.Combine(AppContext.BaseDirectory, "PuzzleSeed", "puzzles.runtime.v1.json");
