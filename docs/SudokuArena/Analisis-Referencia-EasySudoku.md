@@ -870,8 +870,8 @@ Nota tecnica:
   - prompt de inicio + overlay en tablero con progreso y boton `Detener`
   - bloqueo de re-disparo tras cancelacion en la misma partida
   - telemetria local base en VM (inicios, cancelaciones, celdas llenadas) con persistencia local en `desktop-settings.json`
+  - export de eventos de diagnostico local en `autocomplete-events.ndjson` (inicio/cancelacion/finalizacion)
 - Pendiente para paridad funcional tipo APK:
-  - emitir/exportar eventos de diagnostico (actualmente solo contadores persistidos locales)
   - calibrar umbrales/ritmo por dificultad con datos reales de uso.
 
 ### 19.7 Propuesta de implementacion para SudokuArena
