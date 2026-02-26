@@ -11,6 +11,9 @@
         Width="1280"
         MinWidth="1040"
         MinHeight="700">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </Window.Resources>
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -83,14 +86,43 @@
                                FontWeight="SemiBold" />
                 </Grid>
 
-                <controls:SudokuBoardControl x:Name="BoardControl"
-                                             Grid.Row="1"
-                                             Focusable="True"
-                                             Cells="{Binding Cells}"
-                                             GivenCells="{Binding GivenCells}"
-                                             InvalidCells="{Binding InvalidCells}"
-                                             SelectedNumber="{Binding SelectedNumber}"
-                                             SelectedIndex="{Binding SelectedCell, Mode=TwoWay}" />
+                <Grid Grid.Row="1">
+                    <controls:SudokuBoardControl x:Name="BoardControl"
+                                                 Focusable="True"
+                                                 Cells="{Binding Cells}"
+                                                 GivenCells="{Binding GivenCells}"
+                                                 InvalidCells="{Binding InvalidCells}"
+                                                 SelectedNumber="{Binding SelectedNumber}"
+                                                 SelectedIndex="{Binding SelectedCell, Mode=TwoWay}" />
+
+                    <Border Background="#C0000000"
+                            CornerRadius="12"
+                            Margin="16"
+                            Padding="18"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Visibility="{Binding IsAutoCompleteOverlayVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel Width="280">
+                            <TextBlock Text="Autocompletado en curso"
+                                       HorizontalAlignment="Center"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       Foreground="White" />
+                            <TextBlock Text="{Binding AutoCompleteProgressText, StringFormat=Progreso: {0}}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,8,0,0"
+                                       Foreground="#E3ECFF" />
+                            <TextBlock Text="{Binding AutoCompleteCurrentDigitText, StringFormat=Numero actual: {0}}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,4,0,0"
+                                       Foreground="#E3ECFF" />
+                            <Button Content="Detener"
+                                    Margin="0,12,0,0"
+                                    Padding="10,6"
+                                    Command="{Binding CancelAutoCompleteSessionCommand}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
 
                 <Grid Grid.Row="2" Margin="0,14,0,0">
                     <Grid.ColumnDefinitions>
@@ -246,6 +278,23 @@
                           ItemsSource="{Binding DifficultyTierOptions}"
                           SelectedItem="{Binding SelectedDifficultyTier, Mode=TwoWay}" />
 
+                <Border Margin="0,0,0,12"
+                        Padding="10"
+                        CornerRadius="8"
+                        Background="{DynamicResource CanvasBackgroundBrush}"
+                        Visibility="{Binding IsAutoCompletePromptVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <TextBlock Text="Autocompletado disponible"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextBrush}" />
+                        <TextBlock Text="{Binding AutoCompleteRemainingToSolve, StringFormat=Celdas pendientes: {0}}"
+                                   Margin="0,4,0,8"
+                                   Foreground="{DynamicResource TextBrush}" />
+                        <Button Content="Iniciar autocompletado"
+                                Command="{Binding StartAutoCompleteSessionCommand}" />
+                    </StackPanel>
+                </Border>
+
                 <Button Content="Nuevo Puzzle" Command="{Binding NewPuzzleCommand}" />
                 <Button Content="Modo LAN" Command="{Binding SwitchToLanCommand}" />
                 <Button Content="Modo Cloud" Command="{Binding SwitchToCloudCommand}" />
@@ -256,8 +305,17 @@
                         Padding="12"
                         CornerRadius="10"
                         Background="{DynamicResource CanvasBackgroundBrush}">
-                    <TextBlock Text="{Binding IsLanMode, StringFormat=Modo activo: {0}}"
-                               Foreground="{DynamicResource TextBrush}" />
+                    <StackPanel>
+                        <TextBlock Text="{Binding IsLanMode, StringFormat=Modo activo: {0}}"
+                                   Foreground="{DynamicResource TextBrush}" />
+                        <TextBlock Text="{Binding AutoCompleteStarts, StringFormat=AutoComp inicios: {0}}"
+                                   Margin="0,6,0,0"
+                                   Foreground="{DynamicResource TextBrush}" />
+                        <TextBlock Text="{Binding AutoCompleteCancels, StringFormat=AutoComp cancelaciones: {0}}"
+                                   Foreground="{DynamicResource TextBrush}" />
+                        <TextBlock Text="{Binding AutoCompleteFilledCells, StringFormat=AutoComp celdas llenadas: {0}}"
+                                   Foreground="{DynamicResource TextBrush}" />
+                    </StackPanel>
                 </Border>
             </StackPanel>
         </Border>

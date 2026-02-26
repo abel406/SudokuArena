@@ -26,32 +26,39 @@ public partial class MainViewModel : ObservableObject
     private DateTimeOffset? _clockPausedAtUtc;
     private TimeSpan _pausedClockDuration = TimeSpan.Zero;
     private bool _isDefeatDialogOpen;
+    private readonly Queue<AutoCompleteStep> _autoCompleteQueue = new();
+    private int[] _resolvedSolution = [];
     private readonly ThemeManager? _themeManager;
     private readonly IThemePreferenceStore? _themePreferenceStore;
     private readonly IPuzzleProvider? _puzzleProvider;
 
     public MainViewModel()
-        : this(SudokuDefaults.SamplePuzzle, null, null)
+        : this(SudokuDefaults.SamplePuzzle, null, null, null)
     {
     }
 
     public MainViewModel(string puzzle)
-        : this(puzzle, null, null)
+        : this(puzzle, null, null, null)
+    {
+    }
+
+    public MainViewModel(string puzzle, string solution)
+        : this(puzzle, solution, null, null)
     {
     }
 
     public MainViewModel(ThemeManager themeManager)
-        : this(SudokuDefaults.SamplePuzzle, themeManager, null)
+        : this(SudokuDefaults.SamplePuzzle, null, themeManager, null)
     {
     }
 
     public MainViewModel(ThemeManager themeManager, IThemePreferenceStore themePreferenceStore)
-        : this(SudokuDefaults.SamplePuzzle, themeManager, themePreferenceStore)
+        : this(SudokuDefaults.SamplePuzzle, null, themeManager, themePreferenceStore)
     {
     }
 
     public MainViewModel(IPuzzleProvider puzzleProvider)
-        : this(SudokuDefaults.SamplePuzzle, null, null, puzzleProvider)
+        : this(SudokuDefaults.SamplePuzzle, null, null, null, puzzleProvider)
     {
     }
 
@@ -59,12 +66,13 @@ public partial class MainViewModel : ObservableObject
         ThemeManager themeManager,
         IThemePreferenceStore themePreferenceStore,
         IPuzzleProvider puzzleProvider)
-        : this(SudokuDefaults.SamplePuzzle, themeManager, themePreferenceStore, puzzleProvider)
+        : this(SudokuDefaults.SamplePuzzle, null, themeManager, themePreferenceStore, puzzleProvider)
     {
     }
 
     private MainViewModel(
         string puzzle,
+        string? solution,
         ThemeManager? themeManager,
         IThemePreferenceStore? themePreferenceStore,
         IPuzzleProvider? puzzleProvider = null)
@@ -83,7 +91,7 @@ public partial class MainViewModel : ObservableObject
         _selectedDifficultyTier = initialDifficultyTier;
         DifficultyLabel = ToDifficultyLabel(initialDifficultyTier);
         _autoCompleteEnabled = _themePreferenceStore?.LoadAutoCompleteEnabled() ?? false;
-        LoadPuzzle(puzzle);
+        LoadPuzzle(puzzle, solution);
     }
 
     [ObservableProperty]
@@ -132,6 +140,24 @@ public partial class MainViewModel : ObservableObject
     private int _autoCompleteRemainingToSolve;
 
     [ObservableProperty]
+    private int _autoCompleteQueueTotal;
+
+    [ObservableProperty]
+    private int _autoCompleteQueueCompleted;
+
+    [ObservableProperty]
+    private int _autoCompleteCurrentDigit;
+
+    [ObservableProperty]
+    private int _autoCompleteStarts;
+
+    [ObservableProperty]
+    private int _autoCompleteCancels;
+
+    [ObservableProperty]
+    private int _autoCompleteFilledCells;
+
+    [ObservableProperty]
     private bool _isDeleteMode;
 
     [ObservableProperty]
@@ -173,6 +199,19 @@ public partial class MainViewModel : ObservableObject
 
     public string ErrorSummary => $"Errores: {ErrorCount}/{ErrorLimitValue}";
 
+    public bool IsAutoCompletePromptVisible =>
+        AutoCompleteSessionState == AutoCompleteSessionState.Prompted &&
+        IsAutoCompleteTriggerReady;
+
+    public bool IsAutoCompleteOverlayVisible => AutoCompleteSessionState == AutoCompleteSessionState.Running;
+
+    public string AutoCompleteProgressText => $"{AutoCompleteQueueCompleted}/{AutoCompleteQueueTotal}";
+
+    public string AutoCompleteCurrentDigitText =>
+        AutoCompleteCurrentDigit is >= 1 and <= 9
+            ? AutoCompleteCurrentDigit.ToString()
+            : "-";
+
     partial void OnSelectedCellChanged(int value)
     {
         NotifyBoardChanged();
@@ -202,6 +241,7 @@ public partial class MainViewModel : ObservableObject
         if (!value)
         {
             AutoCompleteSessionState = AutoCompleteSessionState.Idle;
+            ClearAutoCompleteQueue();
         }
 
         EvaluateAutoCompleteSession();
@@ -226,10 +266,39 @@ public partial class MainViewModel : ObservableObject
         if (value)
         {
             AutoCompleteSessionState = AutoCompleteSessionState.Finished;
+            ClearAutoCompleteQueue(resetProgress: false);
         }
 
         EvaluateAutoCompleteSession();
         UpdateActionCommandStates();
+    }
+
+    partial void OnAutoCompleteSessionStateChanged(AutoCompleteSessionState value)
+    {
+        OnPropertyChanged(nameof(IsAutoCompletePromptVisible));
+        OnPropertyChanged(nameof(IsAutoCompleteOverlayVisible));
+        UpdateActionCommandStates();
+    }
+
+    partial void OnIsAutoCompleteTriggerReadyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsAutoCompletePromptVisible));
+        UpdateActionCommandStates();
+    }
+
+    partial void OnAutoCompleteQueueTotalChanged(int value)
+    {
+        OnPropertyChanged(nameof(AutoCompleteProgressText));
+    }
+
+    partial void OnAutoCompleteQueueCompletedChanged(int value)
+    {
+        OnPropertyChanged(nameof(AutoCompleteProgressText));
+    }
+
+    partial void OnAutoCompleteCurrentDigitChanged(int value)
+    {
+        OnPropertyChanged(nameof(AutoCompleteCurrentDigitText));
     }
 
     partial void OnIsDeleteModeChanged(bool value)
@@ -263,7 +332,7 @@ public partial class MainViewModel : ObservableObject
     {
         if (_puzzleProvider is null)
         {
-            LoadPuzzle(SudokuDefaults.SamplePuzzle);
+            LoadPuzzle(SudokuDefaults.SamplePuzzle, null);
             StatusMessage = "Nuevo puzzle cargado (muestra local).";
             return;
         }
@@ -275,7 +344,7 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        LoadPuzzle(nextPuzzle.Puzzle);
+        LoadPuzzle(nextPuzzle.Puzzle, nextPuzzle.Solution);
         DifficultyLabel = ToDifficultyLabel(nextPuzzle.DifficultyTier);
         StatusMessage = $"Nuevo puzzle cargado ({DifficultyLabel}).";
     }
@@ -353,7 +422,39 @@ public partial class MainViewModel : ObservableObject
         AutoCompleteEnabled = !AutoCompleteEnabled;
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanStartAutoCompleteSession))]
+    private void StartAutoCompleteSession()
+    {
+        if (IsGameFinished || !IsAutoCompleteTriggerReady || AutoCompleteSessionState != AutoCompleteSessionState.Prompted)
+        {
+            return;
+        }
+
+        var queue = BuildAutoCompleteQueue();
+        if (queue.Count == 0)
+        {
+            AutoCompleteSessionState = AutoCompleteSessionState.Idle;
+            EvaluateAutoCompleteSession();
+            StatusMessage = "No se encontraron jugadas para autocompletar en esta partida.";
+            return;
+        }
+
+        ClearAutoCompleteQueue();
+        foreach (var step in queue)
+        {
+            _autoCompleteQueue.Enqueue(step);
+        }
+
+        AutoCompleteQueueTotal = _autoCompleteQueue.Count;
+        AutoCompleteQueueCompleted = 0;
+        AutoCompleteCurrentDigit = _autoCompleteQueue.Peek().Value;
+        AutoCompleteSessionState = AutoCompleteSessionState.Running;
+        AutoCompleteStarts++;
+        EvaluateAutoCompleteSession();
+        StatusMessage = $"Autocompletado en progreso ({AutoCompleteProgressText}).";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanCancelAutoCompleteSession))]
     private void CancelAutoCompleteSession()
     {
         if (IsGameFinished ||
@@ -362,9 +463,59 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
+        AutoCompleteCancels++;
+        ClearAutoCompleteQueue();
         AutoCompleteSessionState = AutoCompleteSessionState.Cancelled;
         EvaluateAutoCompleteSession();
         StatusMessage = "Autocompletado cancelado para esta partida.";
+    }
+
+    public void ProcessAutoCompleteTick()
+    {
+        if (AutoCompleteSessionState != AutoCompleteSessionState.Running || IsGameFinished)
+        {
+            return;
+        }
+
+        while (_autoCompleteQueue.Count > 0)
+        {
+            var step = _autoCompleteQueue.Dequeue();
+            if (!IsCellEditable(step.Index) || _cells[step.Index] is not null)
+            {
+                continue;
+            }
+
+            AutoCompleteCurrentDigit = step.Value;
+            ApplyCellEdit(step.Index, step.Value, saveHistory: true);
+            AutoCompleteQueueCompleted++;
+            AutoCompleteFilledCells++;
+
+            if (IsGameFinished || AutoCompleteSessionState != AutoCompleteSessionState.Running)
+            {
+                ClearAutoCompleteQueue(resetProgress: false);
+                return;
+            }
+
+            if (_autoCompleteQueue.Count > 0)
+            {
+                AutoCompleteCurrentDigit = _autoCompleteQueue.Peek().Value;
+                StatusMessage = $"Autocompletado en progreso ({AutoCompleteProgressText}).";
+            }
+            else
+            {
+                AutoCompleteCurrentDigit = 0;
+                AutoCompleteSessionState = AutoCompleteSessionState.Finished;
+                EvaluateAutoCompleteSession();
+                StatusMessage = "Autocompletado de sesion finalizado.";
+            }
+
+            return;
+        }
+
+        AutoCompleteCurrentDigit = 0;
+        AutoCompleteSessionState = AutoCompleteSessionState.Finished;
+        EvaluateAutoCompleteSession();
+        StatusMessage = "Autocompletado de sesion finalizado.";
     }
 
     public void TickClock()
@@ -550,9 +701,23 @@ public partial class MainViewModel : ObservableObject
         UpdateActionCommandStates();
     }
 
-    private void LoadPuzzle(string puzzle)
+    private bool CanStartAutoCompleteSession()
+    {
+        return !IsGameFinished &&
+               AutoCompleteSessionState == AutoCompleteSessionState.Prompted &&
+               IsAutoCompleteTriggerReady;
+    }
+
+    private bool CanCancelAutoCompleteSession()
+    {
+        return !IsGameFinished &&
+               AutoCompleteSessionState is AutoCompleteSessionState.Prompted or AutoCompleteSessionState.Running;
+    }
+
+    private void LoadPuzzle(string puzzle, string? solution)
     {
         var board = SudokuBoard.CreateFromString(puzzle);
+        _resolvedSolution = ResolveSolutionDigits(puzzle, solution);
         for (var i = 0; i < 81; i++)
         {
             _cells[i] = board.Cells[i];
@@ -567,6 +732,7 @@ public partial class MainViewModel : ObservableObject
         AutoCompleteSessionState = AutoCompleteSessionState.Idle;
         IsAutoCompleteTriggerReady = false;
         AutoCompleteRemainingToSolve = 0;
+        ClearAutoCompleteQueue();
         Score = 0;
         ErrorCount = 0;
         IsDeleteMode = false;
@@ -657,6 +823,8 @@ public partial class MainViewModel : ObservableObject
     private void UpdateActionCommandStates()
     {
         UndoMoveCommand.NotifyCanExecuteChanged();
+        StartAutoCompleteSessionCommand.NotifyCanExecuteChanged();
+        CancelAutoCompleteSessionCommand.NotifyCanExecuteChanged();
     }
 
     private void NotifyBoardChanged()
@@ -699,6 +867,12 @@ public partial class MainViewModel : ObservableObject
     {
         AutoCompleteRemainingToSolve = CountRemainingEditableCells();
 
+        if (AutoCompleteSessionState == AutoCompleteSessionState.Running)
+        {
+            IsAutoCompleteTriggerReady = false;
+            return;
+        }
+
         var shouldPrompt = AutoCompleteEnabled &&
                            !IsGameFinished &&
                            !IsAwaitingDefeatDecision &&
@@ -724,6 +898,44 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    private IReadOnlyList<AutoCompleteStep> BuildAutoCompleteQueue()
+    {
+        if (_resolvedSolution.Length != 81)
+        {
+            return Array.Empty<AutoCompleteStep>();
+        }
+
+        var queue = new List<AutoCompleteStep>();
+        for (var index = 0; index < 81; index++)
+        {
+            if (!_editableCells[index] || _cells[index] is not null)
+            {
+                continue;
+            }
+
+            var value = _resolvedSolution[index];
+            if (value is < 1 or > 9)
+            {
+                continue;
+            }
+
+            queue.Add(new AutoCompleteStep(index, value));
+        }
+
+        return queue;
+    }
+
+    private void ClearAutoCompleteQueue(bool resetProgress = true)
+    {
+        _autoCompleteQueue.Clear();
+        AutoCompleteCurrentDigit = 0;
+        if (resetProgress)
+        {
+            AutoCompleteQueueTotal = 0;
+            AutoCompleteQueueCompleted = 0;
+        }
+    }
+
     private int CountRemainingEditableCells()
     {
         var remaining = 0;
@@ -736,6 +948,167 @@ public partial class MainViewModel : ObservableObject
         }
 
         return remaining;
+    }
+
+    private static int[] ResolveSolutionDigits(string puzzle, string? solution)
+    {
+        if (TryParseSolution(solution, out var parsed))
+        {
+            return parsed;
+        }
+
+        return TrySolvePuzzle(puzzle) ?? [];
+    }
+
+    private static bool TryParseSolution(string? solution, out int[] parsed)
+    {
+        if (string.IsNullOrWhiteSpace(solution) ||
+            solution.Length != 81 ||
+            solution.Any(character => character is < '1' or > '9'))
+        {
+            parsed = [];
+            return false;
+        }
+
+        parsed = new int[81];
+        for (var i = 0; i < solution.Length; i++)
+        {
+            parsed[i] = solution[i] - '0';
+        }
+
+        return true;
+    }
+
+    private static int[]? TrySolvePuzzle(string puzzle)
+    {
+        if (string.IsNullOrWhiteSpace(puzzle) || puzzle.Length != 81)
+        {
+            return null;
+        }
+
+        var board = new int[81];
+        for (var i = 0; i < puzzle.Length; i++)
+        {
+            var character = puzzle[i];
+            if (character is >= '1' and <= '9')
+            {
+                board[i] = character - '0';
+            }
+            else
+            {
+                board[i] = 0;
+            }
+        }
+
+        return SolveRecursive(board) ? board : null;
+    }
+
+    private static bool SolveRecursive(int[] board)
+    {
+        var targetIndex = -1;
+        var bestMask = 0;
+        var bestCount = 10;
+
+        for (var i = 0; i < board.Length; i++)
+        {
+            if (board[i] != 0)
+            {
+                continue;
+            }
+
+            var candidateMask = BuildCandidateMask(board, i);
+            var candidateCount = CountBits(candidateMask);
+            if (candidateCount == 0)
+            {
+                return false;
+            }
+
+            if (candidateCount >= bestCount)
+            {
+                continue;
+            }
+
+            targetIndex = i;
+            bestMask = candidateMask;
+            bestCount = candidateCount;
+            if (bestCount == 1)
+            {
+                break;
+            }
+        }
+
+        if (targetIndex == -1)
+        {
+            return true;
+        }
+
+        for (var digit = 1; digit <= 9; digit++)
+        {
+            var bit = 1 << digit;
+            if ((bestMask & bit) == 0)
+            {
+                continue;
+            }
+
+            board[targetIndex] = digit;
+            if (SolveRecursive(board))
+            {
+                return true;
+            }
+        }
+
+        board[targetIndex] = 0;
+        return false;
+    }
+
+    private static int BuildCandidateMask(int[] board, int index)
+    {
+        var row = index / 9;
+        var col = index % 9;
+        var usedMask = 0;
+
+        for (var i = 0; i < 9; i++)
+        {
+            var rowDigit = board[(row * 9) + i];
+            if (rowDigit is >= 1 and <= 9)
+            {
+                usedMask |= 1 << rowDigit;
+            }
+
+            var columnDigit = board[(i * 9) + col];
+            if (columnDigit is >= 1 and <= 9)
+            {
+                usedMask |= 1 << columnDigit;
+            }
+        }
+
+        var rowStart = (row / 3) * 3;
+        var colStart = (col / 3) * 3;
+        for (var r = rowStart; r < rowStart + 3; r++)
+        {
+            for (var c = colStart; c < colStart + 3; c++)
+            {
+                var digit = board[(r * 9) + c];
+                if (digit is >= 1 and <= 9)
+                {
+                    usedMask |= 1 << digit;
+                }
+            }
+        }
+
+        return 1022 & ~usedMask;
+    }
+
+    private static int CountBits(int value)
+    {
+        var count = 0;
+        while (value != 0)
+        {
+            value &= value - 1;
+            count++;
+        }
+
+        return count;
     }
 
     private sealed record MoveEntry(int Index, int? PreviousValue);
@@ -864,6 +1237,8 @@ public partial class MainViewModel : ObservableObject
             _ => "Medio"
         };
     }
+
+    private sealed record AutoCompleteStep(int Index, int Value);
 }
 
 public sealed record CompletionUnitsEventArgs(

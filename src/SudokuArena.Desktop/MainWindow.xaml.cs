@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly MainViewModel _viewModel;
     private readonly ThemeManager _themeManager;
     private readonly DispatcherTimer _clockTimer;
+    private readonly DispatcherTimer _autoCompleteTimer;
     private int _lastPlayedIndex = 40;
 
     public MainWindow(MainViewModel viewModel, ThemeManager themeManager)
@@ -27,6 +28,12 @@ public partial class MainWindow : Window
             Interval = TimeSpan.FromSeconds(1)
         };
         _clockTimer.Tick += (_, _) => _viewModel.TickClock();
+
+        _autoCompleteTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(250)
+        };
+        _autoCompleteTimer.Tick += (_, _) => _viewModel.ProcessAutoCompleteTick();
 
         BoardControl.CellSelected += OnBoardCellSelected;
         BoardControl.CellEdited += OnBoardCellEdited;
@@ -51,6 +58,7 @@ public partial class MainWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         _clockTimer.Stop();
+        _autoCompleteTimer.Stop();
         _viewModel.DefeatThresholdReached -= OnDefeatThresholdReached;
         _viewModel.GameWon -= OnGameWon;
         _viewModel.GameLost -= OnGameLost;
@@ -121,6 +129,7 @@ public partial class MainWindow : Window
     {
         _viewModel.PauseClock();
         _clockTimer.Stop();
+        _autoCompleteTimer.Stop();
         BoardControl.StartVictoryAnimation(_lastPlayedIndex);
         await Task.Delay(700);
 
@@ -135,10 +144,28 @@ public partial class MainWindow : Window
     {
         _viewModel.PauseClock();
         _clockTimer.Stop();
+        _autoCompleteTimer.Stop();
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(MainViewModel.AutoCompleteSessionState))
+        {
+            if (_viewModel.AutoCompleteSessionState == AutoCompleteSessionState.Running)
+            {
+                if (!_autoCompleteTimer.IsEnabled)
+                {
+                    _autoCompleteTimer.Start();
+                }
+            }
+            else
+            {
+                _autoCompleteTimer.Stop();
+            }
+
+            return;
+        }
+
         if (e.PropertyName != nameof(MainViewModel.IsGameFinished))
         {
             return;

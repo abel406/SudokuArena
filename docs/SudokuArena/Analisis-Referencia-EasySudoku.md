@@ -863,12 +863,16 @@ Nota tecnica:
 - Implementado hoy:
   - toggle `AutoCompleteEnabled` funcional
   - persistencia local de la preferencia
-  - autocompletado por click: si celda editable vacia tiene un unico candidato valido, se rellena.
+  - trigger de oportunidad por progreso restante (`5..9` celdas editables pendientes)
+  - estado de sesion en VM (`Idle -> Prompted -> Running -> Cancelled -> Finished`)
+  - sesion temporizada de autocompletado (cola + `250 ms` por tick)
+  - prompt de inicio + overlay en tablero con progreso y boton `Detener`
+  - bloqueo de re-disparo tras cancelacion en la misma partida
+  - telemetria local base en VM (inicios, cancelaciones, celdas llenadas)
 - Pendiente para paridad funcional tipo APK:
-  - trigger automatico por progreso restante
-  - sesion de autocompletado en cola con intervalo
-  - overlay/modal con progreso y boton cancelar
-  - estado efimero por partida (`cancelado`, `ya mostrado`) y telemetria local.
+  - mover politica de activacion a servicio desacoplado en `Application`
+  - definir/implementar storage de telemetria local persistida y/o eventos de diagnostico
+  - calibrar umbrales/ritmo por dificultad con datos reales de uso.
 
 ### 19.7 Propuesta de implementacion para SudokuArena
 

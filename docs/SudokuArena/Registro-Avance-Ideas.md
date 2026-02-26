@@ -148,11 +148,11 @@ Agrupacion por fase:
 | ID | Tarea | Prioridad | Estado | Nota |
 |---|---|---|---|---|
 | AC-01 | Definir contrato funcional de autocompletado | Alta | Completada | Documentado en `docs/SudokuArena/Analisis-Referencia-EasySudoku.md` (seccion 19): reglas APK, estados y propuesta por fases para SudokuArena. |
-| AC-02 | Implementar evaluador de oportunidad de autocompletado | Alta | Parcial | Implementado MVP por candidato unico en click; pendiente evaluador de oportunidad por progreso restante y estado de sesion. |
-| AC-03 | Integrar accion de autocompletado en flujo de jugada | Alta | Parcial | Implementado MVP en `MainViewModel` (relleno asistido puntual); pendiente ejecucion automatizada por cola temporizada. |
+| AC-02 | Implementar evaluador de oportunidad de autocompletado | Alta | Parcial | Implementado trigger por progreso restante (`5..9`) y estado de partida/sesion en `MainViewModel`; pendiente mover politica a servicio desacoplado en `Application`. |
+| AC-03 | Integrar accion de autocompletado en flujo de jugada | Alta | Completada | Implementada sesion temporizada (250 ms/tick) con cola de celdas, inicio desde prompt y cancelacion por partida. |
 | AC-04 | Conectar y respetar settings relacionados (`AutoComplete`, `AutoRemoveNotes`, `AutoNextNumber`) | Alta | Parcial | `AutoComplete` ya persistido y aplicado; faltan `AutoRemoveNotes` y `AutoNextNumber` (aun no existen notas en runtime actual). |
-| AC-05 | Agregar telemetria local de uso de autocompletado | Media | Propuesta | Salida minima: contadores de uso local (clicks/rachas/cancelaciones) y eventos internos para diagnostico. |
-| AC-06 | Pruebas del flujo de autocompletado (unitarias + integracion VM) | Alta | Parcial | Agregadas pruebas del MVP (toggle/persistencia/autofill por candidato unico); faltan tests de sesion automatizada y cancelacion. |
+| AC-05 | Agregar telemetria local de uso de autocompletado | Media | Parcial | Agregados contadores locales en VM (`starts`, `cancelaciones`, `celdas llenadas`); pendiente export/eventos de diagnostico persistidos. |
+| AC-06 | Pruebas del flujo de autocompletado (unitarias + integracion VM) | Alta | Completada | Cubierto con tests de toggle/persistencia, trigger de sesion, start, ticks, cancelacion y finalizacion de cola. |
 
 Orden recomendado de ejecucion del feature:
 1. `AC-01`

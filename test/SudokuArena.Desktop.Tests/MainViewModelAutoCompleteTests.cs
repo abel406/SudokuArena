@@ -6,6 +6,17 @@ namespace SudokuArena.Desktop.Tests;
 
 public sealed class MainViewModelAutoCompleteTests
 {
+    private const string SolvedBoard =
+        "534678912" +
+        "672195348" +
+        "198342567" +
+        "859761423" +
+        "426853791" +
+        "713924856" +
+        "961537284" +
+        "287419635" +
+        "345286179";
+
     private const string PuzzleWithNineGaps =
         "000000000" +
         "672195348" +
@@ -159,6 +170,81 @@ public sealed class MainViewModelAutoCompleteTests
         Assert.Equal(4, viewModel.Cells[8]);
         Assert.True(viewModel.InvalidCells[8]);
         Assert.Equal(1, viewModel.ErrorCount);
+    }
+
+    [Fact]
+    public void StartAutoCompleteSession_ShouldEnterRunning_AndInitializeProgress()
+    {
+        var viewModel = new MainViewModel(PuzzleWithNineGaps, SolvedBoard)
+        {
+            AutoCompleteEnabled = true
+        };
+
+        viewModel.StartAutoCompleteSessionCommand.Execute(null);
+
+        Assert.Equal(AutoCompleteSessionState.Running, viewModel.AutoCompleteSessionState);
+        Assert.True(viewModel.IsAutoCompleteOverlayVisible);
+        Assert.False(viewModel.IsAutoCompleteTriggerReady);
+        Assert.Equal(9, viewModel.AutoCompleteQueueTotal);
+        Assert.Equal(0, viewModel.AutoCompleteQueueCompleted);
+        Assert.Equal(1, viewModel.AutoCompleteStarts);
+    }
+
+    [Fact]
+    public void ProcessAutoCompleteTick_ShouldFillNextCell_AndUpdateCounters()
+    {
+        var viewModel = new MainViewModel(PuzzleWithNineGaps, SolvedBoard)
+        {
+            AutoCompleteEnabled = true
+        };
+        viewModel.StartAutoCompleteSessionCommand.Execute(null);
+
+        viewModel.ProcessAutoCompleteTick();
+
+        Assert.Equal(5, viewModel.Cells[0]);
+        Assert.Equal(1, viewModel.AutoCompleteQueueCompleted);
+        Assert.Equal(1, viewModel.AutoCompleteFilledCells);
+        Assert.Equal("1/9", viewModel.AutoCompleteProgressText);
+    }
+
+    [Fact]
+    public void ProcessAutoCompleteTick_ShouldFinishSession_WhenQueueCompletes()
+    {
+        var viewModel = new MainViewModel(PuzzleWithNineGaps, SolvedBoard)
+        {
+            AutoCompleteEnabled = true
+        };
+        viewModel.StartAutoCompleteSessionCommand.Execute(null);
+
+        for (var i = 0; i < 9; i++)
+        {
+            viewModel.ProcessAutoCompleteTick();
+        }
+
+        Assert.Equal(AutoCompleteSessionState.Finished, viewModel.AutoCompleteSessionState);
+        Assert.True(viewModel.IsGameFinished);
+        Assert.True(viewModel.IsVictory);
+        Assert.Equal(9, viewModel.AutoCompleteQueueCompleted);
+        Assert.Equal(9, viewModel.AutoCompleteFilledCells);
+    }
+
+    [Fact]
+    public void CancelAutoCompleteSession_ShouldStopRunningSession_AndCountCancellation()
+    {
+        var viewModel = new MainViewModel(PuzzleWithNineGaps, SolvedBoard)
+        {
+            AutoCompleteEnabled = true
+        };
+        viewModel.StartAutoCompleteSessionCommand.Execute(null);
+        viewModel.ProcessAutoCompleteTick();
+
+        viewModel.CancelAutoCompleteSessionCommand.Execute(null);
+        viewModel.ProcessAutoCompleteTick();
+
+        Assert.Equal(AutoCompleteSessionState.Cancelled, viewModel.AutoCompleteSessionState);
+        Assert.Equal(1, viewModel.AutoCompleteCancels);
+        Assert.Equal(0, viewModel.AutoCompleteQueueTotal);
+        Assert.False(viewModel.IsAutoCompleteOverlayVisible);
     }
 
     private sealed class FakeDetector : ISystemThemeDetector
