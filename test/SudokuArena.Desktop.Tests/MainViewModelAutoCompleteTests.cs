@@ -91,7 +91,7 @@ public sealed class MainViewModelAutoCompleteTests
     }
 
     [Fact]
-    public void AutoComplete_ShouldEnterPromptedState_WhenRemainingIsBetweenFiveAndNine()
+    public void AutoComplete_ShouldStartAutomatically_WhenRemainingIsWithinRange()
     {
         var viewModel = new MainViewModel(PuzzleWithNineGaps)
         {
@@ -99,8 +99,8 @@ public sealed class MainViewModelAutoCompleteTests
         };
 
         Assert.Equal(9, viewModel.AutoCompleteRemainingToSolve);
-        Assert.True(viewModel.IsAutoCompleteTriggerReady);
-        Assert.Equal(AutoCompleteSessionState.Prompted, viewModel.AutoCompleteSessionState);
+        Assert.False(viewModel.IsAutoCompleteTriggerReady);
+        Assert.Equal(AutoCompleteSessionState.Running, viewModel.AutoCompleteSessionState);
     }
 
     [Fact]
@@ -115,7 +115,8 @@ public sealed class MainViewModelAutoCompleteTests
         Assert.Equal(6, viewModel.AutoCompleteTriggerMinRemaining);
         Assert.Equal(10, viewModel.AutoCompleteTriggerMaxRemaining);
         Assert.Equal(300, viewModel.AutoCompleteTickIntervalMilliseconds);
-        Assert.True(viewModel.IsAutoCompleteTriggerReady);
+        Assert.Equal(AutoCompleteSessionState.Running, viewModel.AutoCompleteSessionState);
+        Assert.False(viewModel.IsAutoCompleteTriggerReady);
     }
 
     [Fact]
@@ -132,7 +133,7 @@ public sealed class MainViewModelAutoCompleteTests
         Assert.Equal(7, viewModel.AutoCompleteTriggerMaxRemaining);
         Assert.Equal(200, viewModel.AutoCompleteTickIntervalMilliseconds);
         Assert.False(viewModel.IsAutoCompleteTriggerReady);
-        Assert.Equal(AutoCompleteSessionState.Idle, viewModel.AutoCompleteSessionState);
+        Assert.Equal(AutoCompleteSessionState.Running, viewModel.AutoCompleteSessionState);
     }
 
     [Fact]
@@ -228,8 +229,6 @@ public sealed class MainViewModelAutoCompleteTests
             AutoCompleteEnabled = true
         };
 
-        viewModel.StartAutoCompleteSessionCommand.Execute(null);
-
         Assert.Equal(AutoCompleteSessionState.Running, viewModel.AutoCompleteSessionState);
         Assert.True(viewModel.IsAutoCompleteOverlayVisible);
         Assert.False(viewModel.IsAutoCompleteTriggerReady);
@@ -245,7 +244,6 @@ public sealed class MainViewModelAutoCompleteTests
         {
             AutoCompleteEnabled = true
         };
-        viewModel.StartAutoCompleteSessionCommand.Execute(null);
 
         viewModel.ProcessAutoCompleteTick();
 
@@ -262,7 +260,6 @@ public sealed class MainViewModelAutoCompleteTests
         {
             AutoCompleteEnabled = true
         };
-        viewModel.StartAutoCompleteSessionCommand.Execute(null);
 
         for (var i = 0; i < 9; i++)
         {
@@ -288,8 +285,6 @@ public sealed class MainViewModelAutoCompleteTests
         {
             AutoCompleteEnabled = true
         };
-
-        viewModel.StartAutoCompleteSessionCommand.Execute(null);
         viewModel.CancelAutoCompleteSessionCommand.Execute(null);
 
         Assert.Equal(2, sink.Events.Count);
@@ -304,7 +299,6 @@ public sealed class MainViewModelAutoCompleteTests
         {
             AutoCompleteEnabled = true
         };
-        viewModel.StartAutoCompleteSessionCommand.Execute(null);
         viewModel.ProcessAutoCompleteTick();
 
         viewModel.CancelAutoCompleteSessionCommand.Execute(null);

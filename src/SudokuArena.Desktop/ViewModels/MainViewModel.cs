@@ -269,10 +269,6 @@ public partial class MainViewModel : ObservableObject
 
     public string ErrorSummary => $"Errores: {ErrorCount}/{ErrorLimitValue}";
 
-    public bool IsAutoCompletePromptVisible =>
-        AutoCompleteSessionState == AutoCompleteSessionState.Prompted &&
-        IsAutoCompleteTriggerReady;
-
     public bool IsAutoCompleteOverlayVisible => AutoCompleteSessionState == AutoCompleteSessionState.Running;
 
     public string AutoCompleteProgressText => $"{AutoCompleteQueueCompleted}/{AutoCompleteQueueTotal}";
@@ -316,7 +312,7 @@ public partial class MainViewModel : ObservableObject
 
         EvaluateAutoCompleteSession();
 
-        if (IsGameFinished || IsAwaitingDefeatDecision)
+        if (IsGameFinished || IsAwaitingDefeatDecision || AutoCompleteSessionState == AutoCompleteSessionState.Running)
         {
             return;
         }
@@ -345,14 +341,12 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnAutoCompleteSessionStateChanged(AutoCompleteSessionState value)
     {
-        OnPropertyChanged(nameof(IsAutoCompletePromptVisible));
         OnPropertyChanged(nameof(IsAutoCompleteOverlayVisible));
         UpdateActionCommandStates();
     }
 
     partial void OnIsAutoCompleteTriggerReadyChanged(bool value)
     {
-        OnPropertyChanged(nameof(IsAutoCompletePromptVisible));
         UpdateActionCommandStates();
     }
 
@@ -508,21 +502,20 @@ public partial class MainViewModel : ObservableObject
         AutoCompleteEnabled = !AutoCompleteEnabled;
     }
 
-    [RelayCommand(CanExecute = nameof(CanStartAutoCompleteSession))]
-    private void StartAutoCompleteSession()
+    private bool TryStartAutoCompleteSession(bool startedAutomatically)
     {
-        if (IsGameFinished || !IsAutoCompleteTriggerReady || AutoCompleteSessionState != AutoCompleteSessionState.Prompted)
+        if (IsGameFinished || !IsAutoCompleteTriggerReady || AutoCompleteSessionState == AutoCompleteSessionState.Running)
         {
-            return;
+            return false;
         }
 
         var queue = BuildAutoCompleteQueue();
         if (queue.Count == 0)
         {
-            AutoCompleteSessionState = AutoCompleteSessionState.Idle;
-            EvaluateAutoCompleteSession();
+            AutoCompleteSessionState = AutoCompleteSessionState.Cancelled;
+            IsAutoCompleteTriggerReady = false;
             StatusMessage = "No se encontraron jugadas para autocompletar en esta partida.";
-            return;
+            return false;
         }
 
         ClearAutoCompleteQueue();
@@ -535,10 +528,13 @@ public partial class MainViewModel : ObservableObject
         AutoCompleteQueueCompleted = 0;
         AutoCompleteCurrentDigit = _autoCompleteQueue.Peek().Value;
         AutoCompleteSessionState = AutoCompleteSessionState.Running;
+        IsAutoCompleteTriggerReady = false;
         AutoCompleteStarts++;
-        EvaluateAutoCompleteSession();
         RecordAutoCompleteDiagnostic("start");
-        StatusMessage = $"Autocompletado en progreso ({AutoCompleteProgressText}).";
+        StatusMessage = startedAutomatically
+            ? $"Autocompletado iniciado automaticamente ({AutoCompleteProgressText})."
+            : $"Autocompletado en progreso ({AutoCompleteProgressText}).";
+        return true;
     }
 
     [RelayCommand(CanExecute = nameof(CanCancelAutoCompleteSession))]
@@ -791,17 +787,9 @@ public partial class MainViewModel : ObservableObject
         UpdateActionCommandStates();
     }
 
-    private bool CanStartAutoCompleteSession()
-    {
-        return !IsGameFinished &&
-               AutoCompleteSessionState == AutoCompleteSessionState.Prompted &&
-               IsAutoCompleteTriggerReady;
-    }
-
     private bool CanCancelAutoCompleteSession()
     {
-        return !IsGameFinished &&
-               AutoCompleteSessionState is AutoCompleteSessionState.Prompted or AutoCompleteSessionState.Running;
+        return !IsGameFinished && AutoCompleteSessionState == AutoCompleteSessionState.Running;
     }
 
     private void LoadPuzzle(string puzzle, string? solution)
@@ -913,7 +901,6 @@ public partial class MainViewModel : ObservableObject
     private void UpdateActionCommandStates()
     {
         UndoMoveCommand.NotifyCanExecuteChanged();
-        StartAutoCompleteSessionCommand.NotifyCanExecuteChanged();
         CancelAutoCompleteSessionCommand.NotifyCanExecuteChanged();
     }
 
@@ -990,9 +977,12 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        if (shouldPrompt && AutoCompleteSessionState == AutoCompleteSessionState.Idle)
+        if (shouldPrompt &&
+            (AutoCompleteSessionState == AutoCompleteSessionState.Idle ||
+             AutoCompleteSessionState == AutoCompleteSessionState.Prompted))
         {
             AutoCompleteSessionState = AutoCompleteSessionState.Prompted;
+            _ = TryStartAutoCompleteSession(startedAutomatically: true);
             return;
         }
 

@@ -281,10 +281,9 @@
                 <Border Margin="0,0,0,12"
                         Padding="10"
                         CornerRadius="8"
-                        Background="{DynamicResource CanvasBackgroundBrush}"
-                        Visibility="{Binding IsAutoCompletePromptVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                        Background="{DynamicResource CanvasBackgroundBrush}">
                     <StackPanel>
-                        <TextBlock Text="Autocompletado disponible"
+                        <TextBlock Text="Autocompletado automatico"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextBrush}" />
                         <TextBlock Text="{Binding AutoCompleteRemainingToSolve, StringFormat=Celdas pendientes: {0}}"
@@ -300,8 +299,6 @@
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
-                        <Button Content="Iniciar autocompletado"
-                                Command="{Binding StartAutoCompleteSessionCommand}" />
                     </StackPanel>
                 </Border>
 
