@@ -13,6 +13,7 @@ Actualizado: 2026-02-26
 - `GS`: Game Start (inicio de partida y selector de dificultad).
 - `PC`: Puzzle Catalog (catalogo runtime de puzzles/provider).
 - `PD`: Puzzle Data Pipeline (pipeline de datos).
+- `SC`: Scoring Core (motor de puntuacion y calibracion).
 - `UI`: User Interface (interfaz de usuario).
 
 ## Siglas Tecnicas Generales

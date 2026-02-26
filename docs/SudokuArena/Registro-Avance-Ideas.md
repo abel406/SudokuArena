@@ -171,6 +171,35 @@ Agrupacion por fase:
 4. Fase D - Calidad y observabilidad: `AC-06`, `AC-05`.
 5. Fase E - Calibracion local: `AC-07`.
 
+### Feature: Sistema de Scoring Compatible con Referencia APK
+
+| ID | Tarea | Prioridad | Estado | Nota |
+|---|---|---|---|---|
+| SC-01 | Definir contrato de scoring versionado (`old/new/final`) en Application | Alta | Planificada | Salida minima: motor de score desacoplado con `ScoreVersion` y selector de `finalScore`. |
+| SC-02 | Implementar tabla de coeficientes por dificultad/modo | Alta | Planificada | Salida minima: coeficientes base por tier (`Beginner..Extreme`, `Six`, `Sixteen`) alineados al comportamiento documentado de referencia. |
+| SC-03 | Integrar `time_map` por puzzle y buckets de tiempo (`10/8/6/4/2`) | Alta | Planificada | Salida minima: bonus de tiempo por umbrales por puzzle con fallback controlado cuando no hay mapa valido. |
+| SC-04 | Implementar score incremental por jugada valida | Alta | Planificada | Salida minima: aplicar score por fill, bonus por cierre de fila/columna/subgrid y bonus por digito agotado. |
+| SC-05 | Implementar score de cierre de partida (perfect/error/time) | Alta | Planificada | Salida minima: bonus final por partida perfecta, margen de errores y tiempo final. |
+| SC-06 | Integrar en UI desglose de score y score final en victoria | Media | Propuesta | Salida minima: mostrar desglose (fill/clear/time/error/perfect/final) en dialogo de victoria o panel de resultado. |
+| SC-07 | Calibrar escala objetivo por dificultad (incluyendo rangos altos en hard/expert) | Alta | Propuesta | Salida minima: distribucion de puntajes por tier con objetivos de rango (ej. partidas hard en banda alta comparable a referencia). |
+| SC-08 | Pruebas unitarias/integracion del motor de scoring | Alta | Planificada | Salida minima: pruebas por componente (por-jugada, cierre, tiempo, errores, selector de version y no-regresion). |
+
+Orden recomendado de ejecucion del feature:
+1. `SC-01`
+2. `SC-02`
+3. `SC-03`
+4. `SC-04`
+5. `SC-05`
+6. `SC-08`
+7. `SC-07`
+8. `SC-06`
+
+Agrupacion por fase:
+1. Fase A - Motor y contratos: `SC-01`, `SC-02`, `SC-03`.
+2. Fase B - Flujo de puntuacion en runtime: `SC-04`, `SC-05`.
+3. Fase C - Calidad y calibracion: `SC-08`, `SC-07`.
+4. Fase D - Exposicion UI: `SC-06`.
+
 Subtareas tecnicas iniciales (UI-01/UI-02):
 
 - `UI-01.1` `src/SudokuArena.Desktop/Theming/ThemeMode.cs`: enum `System/Light/Dark`.

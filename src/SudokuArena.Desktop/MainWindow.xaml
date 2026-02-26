@@ -5,15 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:SudokuArena.Desktop.Controls"
         mc:Ignorable="d"
-        Background="{DynamicResource CanvasBackgroundBrush}"
+        Background="{StaticResource CanvasBackgroundBrush}"
         Title="Sudoku Arena"
         Height="820"
         Width="1280"
         MinWidth="1040"
         MinHeight="700">
-    <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
-    </Window.Resources>
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -28,16 +25,16 @@
         <Border Grid.ColumnSpan="2"
                 CornerRadius="14"
                 Padding="18"
-                Background="{DynamicResource SurfaceBrush}">
+                Background="{StaticResource SurfaceBrush}">
             <DockPanel>
                 <TextBlock Text="SUDOKU ARENA"
                            FontSize="28"
                            FontWeight="Bold"
-                           Foreground="{DynamicResource TextBrush}" />
+                           Foreground="{StaticResource TextBrush}" />
                 <TextBlock Text="{Binding StatusMessage}"
                            DockPanel.Dock="Right"
                            VerticalAlignment="Center"
-                           Foreground="{DynamicResource AccentBrush}"
+                           Foreground="{StaticResource AccentBrush}"
                            FontWeight="SemiBold" />
             </DockPanel>
         </Border>
@@ -46,7 +43,7 @@
                 Margin="0,18,18,0"
                 Padding="16"
                 CornerRadius="14"
-                Background="{DynamicResource SurfaceBrush}">
+                Background="{StaticResource SurfaceBrush}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -64,7 +61,7 @@
 
                     <TextBlock Text="{Binding ErrorSummary}"
                                VerticalAlignment="Center"
-                               Foreground="{DynamicResource TextBrush}"
+                               Foreground="{StaticResource TextBrush}"
                                FontWeight="SemiBold" />
 
                     <StackPanel Grid.Column="1" HorizontalAlignment="Center">
@@ -72,57 +69,28 @@
                                    HorizontalAlignment="Center"
                                    FontWeight="Bold"
                                    FontSize="23"
-                                   Foreground="{DynamicResource PrimaryBrush}" />
+                                   Foreground="{StaticResource PrimaryBrush}" />
                         <TextBlock Text="{Binding DifficultyLabel}"
                                    HorizontalAlignment="Center"
-                                   Foreground="{DynamicResource TextBrush}" />
+                                   Foreground="{StaticResource TextBrush}" />
                     </StackPanel>
 
                     <TextBlock Grid.Column="2"
                                Text="{Binding ElapsedTimeText}"
                                HorizontalAlignment="Right"
                                VerticalAlignment="Center"
-                               Foreground="{DynamicResource TextBrush}"
+                               Foreground="{StaticResource TextBrush}"
                                FontWeight="SemiBold" />
                 </Grid>
 
-                <Grid Grid.Row="1">
-                    <controls:SudokuBoardControl x:Name="BoardControl"
-                                                 Focusable="True"
-                                                 Cells="{Binding Cells}"
-                                                 GivenCells="{Binding GivenCells}"
-                                                 InvalidCells="{Binding InvalidCells}"
-                                                 SelectedNumber="{Binding SelectedNumber}"
-                                                 SelectedIndex="{Binding SelectedCell, Mode=TwoWay}" />
-
-                    <Border Background="#C0000000"
-                            CornerRadius="12"
-                            Margin="16"
-                            Padding="18"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Visibility="{Binding IsAutoCompleteOverlayVisible, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <StackPanel Width="280">
-                            <TextBlock Text="Autocompletado en curso"
-                                       HorizontalAlignment="Center"
-                                       FontSize="18"
-                                       FontWeight="Bold"
-                                       Foreground="White" />
-                            <TextBlock Text="{Binding AutoCompleteProgressText, StringFormat=Progreso: {0}}"
-                                       HorizontalAlignment="Center"
-                                       Margin="0,8,0,0"
-                                       Foreground="#E3ECFF" />
-                            <TextBlock Text="{Binding AutoCompleteCurrentDigitText, StringFormat=Numero actual: {0}}"
-                                       HorizontalAlignment="Center"
-                                       Margin="0,4,0,0"
-                                       Foreground="#E3ECFF" />
-                            <Button Content="Detener"
-                                    Margin="0,12,0,0"
-                                    Padding="10,6"
-                                    Command="{Binding CancelAutoCompleteSessionCommand}" />
-                        </StackPanel>
-                    </Border>
-                </Grid>
+                <controls:SudokuBoardControl x:Name="BoardControl"
+                                             Grid.Row="1"
+                                             Focusable="True"
+                                             Cells="{Binding Cells}"
+                                             GivenCells="{Binding GivenCells}"
+                                             InvalidCells="{Binding InvalidCells}"
+                                             SelectedNumber="{Binding SelectedNumber}"
+                                             SelectedIndex="{Binding SelectedCell, Mode=TwoWay}" />
 
                 <Grid Grid.Row="2" Margin="0,14,0,0">
                     <Grid.ColumnDefinitions>
@@ -171,7 +139,7 @@
                                 <Style.Triggers>
                                     <Trigger Property="IsChecked" Value="True">
                                         <Setter Property="Content" Value="Autocompletado: ON" />
-                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                                        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
                                     </Trigger>
                                 </Style.Triggers>
                             </Style>
@@ -242,65 +210,17 @@
                 Margin="0,18,0,0"
                 Padding="18"
                 CornerRadius="14"
-                Background="{DynamicResource SurfaceBrush}">
+                Background="{StaticResource SurfaceBrush}">
             <StackPanel>
-                <TextBlock Text="Tema"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextBrush}" />
-                <ComboBox Margin="0,6,0,12"
-                          ItemsSource="{Binding ThemeModeOptions}"
-                          SelectedItem="{Binding ThemeMode, Mode=TwoWay}" />
-
-                <Border Margin="0,0,0,12"
-                        Padding="8"
-                        CornerRadius="8"
-                        Background="#00000000"
-                        BorderBrush="#7A838F"
-                        BorderThickness="1">
-                    <TextBlock Text="{Binding EffectiveThemeMode, StringFormat=Tema activo: {0}}"
-                               Foreground="{DynamicResource TextBrush}" />
-                </Border>
-
                 <TextBlock Text="Jugador"
                            FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextBrush}" />
+                           Foreground="{StaticResource TextBrush}" />
                 <TextBox Text="{Binding PlayerEmail}" Margin="0,6,0,12" />
 
                 <TextBlock Text="Oponente"
                            FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextBrush}" />
+                           Foreground="{StaticResource TextBrush}" />
                 <TextBox Text="{Binding OpponentEmail}" Margin="0,6,0,12" />
-
-                <TextBlock Text="Dificultad"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextBrush}" />
-                <ComboBox Margin="0,6,0,12"
-                          ItemsSource="{Binding DifficultyTierOptions}"
-                          SelectedItem="{Binding SelectedDifficultyTier, Mode=TwoWay}" />
-
-                <Border Margin="0,0,0,12"
-                        Padding="10"
-                        CornerRadius="8"
-                        Background="{DynamicResource CanvasBackgroundBrush}">
-                    <StackPanel>
-                        <TextBlock Text="Autocompletado automatico"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextBrush}" />
-                        <TextBlock Text="{Binding AutoCompleteRemainingToSolve, StringFormat=Celdas pendientes: {0}}"
-                                   Margin="0,4,0,8"
-                                   Foreground="{DynamicResource TextBrush}" />
-                        <TextBlock Margin="0,0,0,8"
-                                   Foreground="{DynamicResource TextBrush}">
-                            <TextBlock.Text>
-                                <MultiBinding StringFormat="Rango activacion: {0}..{1} | intervalo: {2} ms">
-                                    <Binding Path="AutoCompleteTriggerMinRemaining" />
-                                    <Binding Path="AutoCompleteTriggerMaxRemaining" />
-                                    <Binding Path="AutoCompleteTickIntervalMilliseconds" />
-                                </MultiBinding>
-                            </TextBlock.Text>
-                        </TextBlock>
-                    </StackPanel>
-                </Border>
 
                 <Button Content="Nuevo Puzzle" Command="{Binding NewPuzzleCommand}" />
                 <Button Content="Modo LAN" Command="{Binding SwitchToLanCommand}" />
@@ -311,18 +231,9 @@
                 <Border Margin="0,12,0,0"
                         Padding="12"
                         CornerRadius="10"
-                        Background="{DynamicResource CanvasBackgroundBrush}">
-                    <StackPanel>
-                        <TextBlock Text="{Binding IsLanMode, StringFormat=Modo activo: {0}}"
-                                   Foreground="{DynamicResource TextBrush}" />
-                        <TextBlock Text="{Binding AutoCompleteStarts, StringFormat=AutoComp inicios: {0}}"
-                                   Margin="0,6,0,0"
-                                   Foreground="{DynamicResource TextBrush}" />
-                        <TextBlock Text="{Binding AutoCompleteCancels, StringFormat=AutoComp cancelaciones: {0}}"
-                                   Foreground="{DynamicResource TextBrush}" />
-                        <TextBlock Text="{Binding AutoCompleteFilledCells, StringFormat=AutoComp celdas llenadas: {0}}"
-                                   Foreground="{DynamicResource TextBrush}" />
-                    </StackPanel>
+                        Background="#F1ECE1">
+                    <TextBlock Text="{Binding IsLanMode, StringFormat=Modo activo: {0}}"
+                               Foreground="{StaticResource TextBrush}" />
                 </Border>
             </StackPanel>
         </Border>
@@ -330,7 +241,7 @@
         <TextBlock Grid.Row="2"
                    Grid.ColumnSpan="2"
                    Margin="0,14,0,0"
-                   Foreground="{DynamicResource TextBrush}"
-                   Text="Controles: click izquierdo escribe, click derecho quita foco de celda, Ctrl+1..9 fija número sin escribir; Borrar funciona como modo herramienta; Autocompletado activa el autocompletado automático." />
+                   Foreground="{StaticResource TextBrush}"
+                   Text="Controles: click izquierdo escribe, click derecho quita foco de celda, Ctrl+1..9 fija número sin escribir; Borrar funciona como modo herramienta, Autocompletado termina el juego." />
     </Grid>
 </Window>
