@@ -11,4 +11,8 @@ public interface IThemePreferenceStore
     DifficultyTier? LoadDifficultyTier();
 
     void SaveDifficultyTier(DifficultyTier tier);
+
+    bool? LoadAutoCompleteEnabled();
+
+    void SaveAutoCompleteEnabled(bool enabled);
 }

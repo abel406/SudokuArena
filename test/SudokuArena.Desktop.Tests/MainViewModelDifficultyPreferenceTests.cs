@@ -53,5 +53,11 @@ public sealed class MainViewModelDifficultyPreferenceTests
         {
             SavedDifficultyTiers.Add(tier);
         }
+
+        public bool? LoadAutoCompleteEnabled() => null;
+
+        public void SaveAutoCompleteEnabled(bool enabled)
+        {
+        }
     }
 }

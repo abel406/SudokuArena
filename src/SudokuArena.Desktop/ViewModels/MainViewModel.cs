@@ -10,6 +10,8 @@ namespace SudokuArena.Desktop.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private const int ErrorLimitValue = 3;
+    private const int AutoCompleteTriggerMinRemaining = 5;
+    private const int AutoCompleteTriggerMaxRemaining = 9;
 
     private readonly int?[] _cells = new int?[81];
     private readonly bool[] _givens = new bool[81];
@@ -80,6 +82,7 @@ public partial class MainViewModel : ObservableObject
         var initialDifficultyTier = _themePreferenceStore?.LoadDifficultyTier() ?? DifficultyTier.Medium;
         _selectedDifficultyTier = initialDifficultyTier;
         DifficultyLabel = ToDifficultyLabel(initialDifficultyTier);
+        _autoCompleteEnabled = _themePreferenceStore?.LoadAutoCompleteEnabled() ?? false;
         LoadPuzzle(puzzle);
     }
 
@@ -118,6 +121,15 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _autoCompleteEnabled;
+
+    [ObservableProperty]
+    private AutoCompleteSessionState _autoCompleteSessionState = AutoCompleteSessionState.Idle;
+
+    [ObservableProperty]
+    private bool _isAutoCompleteTriggerReady;
+
+    [ObservableProperty]
+    private int _autoCompleteRemainingToSolve;
 
     [ObservableProperty]
     private bool _isDeleteMode;
@@ -185,13 +197,22 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnAutoCompleteEnabledChanged(bool value)
     {
-        if (IsGameFinished)
+        _themePreferenceStore?.SaveAutoCompleteEnabled(value);
+
+        if (!value)
+        {
+            AutoCompleteSessionState = AutoCompleteSessionState.Idle;
+        }
+
+        EvaluateAutoCompleteSession();
+
+        if (IsGameFinished || IsAwaitingDefeatDecision)
         {
             return;
         }
 
         StatusMessage = value
-            ? "Autocompletado activado (pendiente de implementación)."
+            ? "Autocompletado activado."
             : "Autocompletado desactivado.";
     }
 
@@ -202,6 +223,12 @@ public partial class MainViewModel : ObservableObject
             IsDeleteMode = false;
         }
 
+        if (value)
+        {
+            AutoCompleteSessionState = AutoCompleteSessionState.Finished;
+        }
+
+        EvaluateAutoCompleteSession();
         UpdateActionCommandStates();
     }
 
@@ -309,6 +336,7 @@ public partial class MainViewModel : ObservableObject
 
         RecalculateState();
         UpdateNumberOptions();
+        EvaluateAutoCompleteSession();
         NotifyBoardChanged();
         UpdateActionCommandStates();
         StatusMessage = "Ultima jugada deshecha.";
@@ -323,6 +351,20 @@ public partial class MainViewModel : ObservableObject
         }
 
         AutoCompleteEnabled = !AutoCompleteEnabled;
+    }
+
+    [RelayCommand]
+    private void CancelAutoCompleteSession()
+    {
+        if (IsGameFinished ||
+            AutoCompleteSessionState is AutoCompleteSessionState.Cancelled or AutoCompleteSessionState.Finished)
+        {
+            return;
+        }
+
+        AutoCompleteSessionState = AutoCompleteSessionState.Cancelled;
+        EvaluateAutoCompleteSession();
+        StatusMessage = "Autocompletado cancelado para esta partida.";
     }
 
     public void TickClock()
@@ -453,6 +495,7 @@ public partial class MainViewModel : ObservableObject
         else if (IsSolved())
         {
             Score += 20;
+            AutoCompleteSessionState = AutoCompleteSessionState.Finished;
             IsGameFinished = true;
             IsVictory = true;
             StatusMessage = "Puzzle completado.";
@@ -469,6 +512,7 @@ public partial class MainViewModel : ObservableObject
         }
 
         UpdateNumberOptions();
+        EvaluateAutoCompleteSession();
         NotifyBoardChanged();
         UpdateActionCommandStates();
     }
@@ -485,6 +529,7 @@ public partial class MainViewModel : ObservableObject
         ErrorCount = Math.Max(0, ErrorCount - 1);
         _isDefeatDialogOpen = false;
         IsAwaitingDefeatDecision = false;
+        EvaluateAutoCompleteSession();
         StatusMessage = "Continuaste la partida tras alcanzar el limite de errores.";
     }
 
@@ -497,6 +542,7 @@ public partial class MainViewModel : ObservableObject
 
         _isDefeatDialogOpen = false;
         IsAwaitingDefeatDecision = false;
+        AutoCompleteSessionState = AutoCompleteSessionState.Finished;
         IsGameFinished = true;
         IsVictory = false;
         StatusMessage = "Partida marcada como derrota.";
@@ -518,9 +564,11 @@ public partial class MainViewModel : ObservableObject
         _moveHistory.Clear();
         SelectedCell = -1;
         SelectedNumber = 0;
+        AutoCompleteSessionState = AutoCompleteSessionState.Idle;
+        IsAutoCompleteTriggerReady = false;
+        AutoCompleteRemainingToSolve = 0;
         Score = 0;
         ErrorCount = 0;
-        AutoCompleteEnabled = false;
         IsDeleteMode = false;
         IsGameFinished = false;
         IsVictory = false;
@@ -532,6 +580,7 @@ public partial class MainViewModel : ObservableObject
         TickClock();
         RecalculateState();
         UpdateNumberOptions();
+        EvaluateAutoCompleteSession();
         NotifyBoardChanged();
         UpdateActionCommandStates();
     }
@@ -642,7 +691,51 @@ public partial class MainViewModel : ObservableObject
 
         _isDefeatDialogOpen = true;
         IsAwaitingDefeatDecision = true;
+        EvaluateAutoCompleteSession();
         DefeatThresholdReached?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void EvaluateAutoCompleteSession()
+    {
+        AutoCompleteRemainingToSolve = CountRemainingEditableCells();
+
+        var shouldPrompt = AutoCompleteEnabled &&
+                           !IsGameFinished &&
+                           !IsAwaitingDefeatDecision &&
+                           AutoCompleteSessionState is not AutoCompleteSessionState.Cancelled &&
+                           AutoCompleteRemainingToSolve is >= AutoCompleteTriggerMinRemaining and <= AutoCompleteTriggerMaxRemaining;
+
+        IsAutoCompleteTriggerReady = shouldPrompt;
+
+        if (AutoCompleteSessionState == AutoCompleteSessionState.Finished)
+        {
+            return;
+        }
+
+        if (shouldPrompt && AutoCompleteSessionState == AutoCompleteSessionState.Idle)
+        {
+            AutoCompleteSessionState = AutoCompleteSessionState.Prompted;
+            return;
+        }
+
+        if (!shouldPrompt && AutoCompleteSessionState == AutoCompleteSessionState.Prompted)
+        {
+            AutoCompleteSessionState = AutoCompleteSessionState.Idle;
+        }
+    }
+
+    private int CountRemainingEditableCells()
+    {
+        var remaining = 0;
+        for (var i = 0; i < 81; i++)
+        {
+            if (_editableCells[i] && _cells[i] is null)
+            {
+                remaining++;
+            }
+        }
+
+        return remaining;
     }
 
     private sealed record MoveEntry(int Index, int? PreviousValue);
@@ -780,6 +873,15 @@ public sealed record CompletionUnitsEventArgs(
     bool RowCompleted,
     bool ColumnCompleted,
     bool BoxCompleted);
+
+public enum AutoCompleteSessionState
+{
+    Idle,
+    Prompted,
+    Running,
+    Cancelled,
+    Finished
+}
 
 public partial class NumberOptionItem(int number) : ObservableObject
 {

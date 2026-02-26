@@ -86,6 +86,33 @@ public sealed class JsonThemePreferenceStore : IThemePreferenceStore
         }
     }
 
+    public bool? LoadAutoCompleteEnabled()
+    {
+        try
+        {
+            var settings = LoadSettings();
+            return settings?.AutoCompleteEnabled;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public void SaveAutoCompleteEnabled(bool enabled)
+    {
+        try
+        {
+            var settings = LoadSettings() ?? new ThemeSettingsDto();
+            settings.AutoCompleteEnabled = enabled;
+            SaveSettings(settings);
+        }
+        catch
+        {
+            // No-op: fallo de escritura no debe bloquear la UI.
+        }
+    }
+
     private ThemeSettingsDto? LoadSettings()
     {
         if (!File.Exists(_settingsFilePath))
@@ -120,5 +147,7 @@ public sealed class JsonThemePreferenceStore : IThemePreferenceStore
         public string? ThemeMode { get; set; }
 
         public string? DifficultyTier { get; set; }
+
+        public bool? AutoCompleteEnabled { get; set; }
     }
 }

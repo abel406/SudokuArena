@@ -41,6 +41,18 @@ public sealed class ThemePreferenceStoreTests
     }
 
     [Fact]
+    public void SaveAndLoadAutoCompleteEnabled_ShouldRoundTrip()
+    {
+        var path = BuildTempFilePath();
+        var store = new JsonThemePreferenceStore(path);
+
+        store.SaveAutoCompleteEnabled(true);
+        var loaded = store.LoadAutoCompleteEnabled();
+
+        Assert.True(loaded);
+    }
+
+    [Fact]
     public void LoadThemeMode_ShouldReturnNull_WhenStoredValueIsInvalid()
     {
         var path = BuildTempFilePath();
@@ -77,6 +89,21 @@ public sealed class ThemePreferenceStoreTests
 
         Assert.Equal(ThemeMode.Dark, store.LoadThemeMode());
         Assert.Equal(DifficultyTier.Hard, store.LoadDifficultyTier());
+    }
+
+    [Fact]
+    public void SaveThemeDifficultyAndAutoComplete_ShouldPreserveAllValues()
+    {
+        var path = BuildTempFilePath();
+        var store = new JsonThemePreferenceStore(path);
+
+        store.SaveThemeMode(ThemeMode.Light);
+        store.SaveDifficultyTier(DifficultyTier.Medium);
+        store.SaveAutoCompleteEnabled(false);
+
+        Assert.Equal(ThemeMode.Light, store.LoadThemeMode());
+        Assert.Equal(DifficultyTier.Medium, store.LoadDifficultyTier());
+        Assert.False(store.LoadAutoCompleteEnabled());
     }
 
     private static string BuildTempFilePath()

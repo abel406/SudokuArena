@@ -266,6 +266,6 @@
                    Grid.ColumnSpan="2"
                    Margin="0,14,0,0"
                    Foreground="{DynamicResource TextBrush}"
-                   Text="Controles: click izquierdo escribe, click derecho quita foco de celda, Ctrl+1..9 fija número sin escribir; Borrar funciona como modo herramienta, Autocompletado es placeholder." />
+                   Text="Controles: click izquierdo escribe, click derecho quita foco de celda, Ctrl+1..9 fija número sin escribir; Borrar funciona como modo herramienta; Autocompletado activa el autocompletado automático." />
     </Grid>
 </Window>
