@@ -149,7 +149,7 @@ Agrupacion por fase:
 |---|---|---|---|---|
 | AC-01 | Definir contrato funcional de autocompletado | Alta | Completada | Documentado en `docs/SudokuArena/Analisis-Referencia-EasySudoku.md` (seccion 19): reglas APK, estados y propuesta por fases para SudokuArena. |
 | AC-02 | Implementar evaluador de oportunidad de autocompletado | Alta | Completada | Implementado en `Application` (`IAutoCompletePolicyEvaluator`) con contexto de partida, calibracion base por dificultad y override por calibracion local cargada en runtime. |
-| AC-03 | Integrar accion de autocompletado en flujo de jugada | Alta | Completada | Implementada sesion temporizada con cola de celdas, inicio desde prompt, cancelacion por partida e intervalo configurable por tier. |
+| AC-03 | Integrar accion de autocompletado en flujo de jugada | Alta | Completada | Implementada sesion temporizada con cola de celdas, inicio automatico por trigger, cancelacion por partida e intervalo configurable por tier. |
 | AC-04 | Conectar y respetar settings relacionados (`AutoComplete`, `AutoRemoveNotes`, `AutoNextNumber`) | Alta | Parcial | `AutoComplete` ya persistido y aplicado; faltan `AutoRemoveNotes` y `AutoNextNumber` (aun no existen notas en runtime actual). |
 | AC-05 | Agregar telemetria local de uso de autocompletado | Media | Completada | Implementados contadores persistidos y export local de eventos (`autocomplete-events.ndjson`) para diagnostico offline. |
 | AC-06 | Pruebas del flujo de autocompletado (unitarias + integracion VM) | Alta | Completada | Cubierto con tests de toggle/persistencia, trigger de sesion, start, ticks, cancelacion y finalizacion de cola. |

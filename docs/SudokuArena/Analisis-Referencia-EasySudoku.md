@@ -867,7 +867,7 @@ Nota tecnica:
   - trigger por progreso restante calibrado por dificultad (rango por tier)
   - estado de sesion en VM (`Idle -> Prompted -> Running -> Cancelled -> Finished`)
   - sesion temporizada de autocompletado (cola + intervalo por tier)
-  - prompt de inicio + overlay en tablero con progreso y boton `Detener`
+  - inicio automatico al entrar en trigger + overlay en tablero con progreso y boton `Detener`
   - bloqueo de re-disparo tras cancelacion en la misma partida
   - telemetria local base en VM (inicios, cancelaciones, celdas llenadas) con persistencia local en `desktop-settings.json`
   - export de eventos de diagnostico local en `autocomplete-events.ndjson` (inicio/cancelacion/finalizacion)
