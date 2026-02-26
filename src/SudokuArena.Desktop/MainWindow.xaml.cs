@@ -34,6 +34,7 @@ public partial class MainWindow : Window
             Interval = TimeSpan.FromMilliseconds(250)
         };
         _autoCompleteTimer.Tick += (_, _) => _viewModel.ProcessAutoCompleteTick();
+        UpdateAutoCompleteTimerInterval();
 
         BoardControl.CellSelected += OnBoardCellSelected;
         BoardControl.CellEdited += OnBoardCellEdited;
@@ -153,6 +154,7 @@ public partial class MainWindow : Window
         {
             if (_viewModel.AutoCompleteSessionState == AutoCompleteSessionState.Running)
             {
+                UpdateAutoCompleteTimerInterval();
                 if (!_autoCompleteTimer.IsEnabled)
                 {
                     _autoCompleteTimer.Start();
@@ -163,6 +165,12 @@ public partial class MainWindow : Window
                 _autoCompleteTimer.Stop();
             }
 
+            return;
+        }
+
+        if (e.PropertyName == nameof(MainViewModel.AutoCompleteTickIntervalMilliseconds))
+        {
+            UpdateAutoCompleteTimerInterval();
             return;
         }
 
@@ -187,5 +195,11 @@ public partial class MainWindow : Window
     private void OnCompletionUnitsAchieved(object? sender, CompletionUnitsEventArgs e)
     {
         BoardControl.StartCompletionAnimation(e.Index, e.RowCompleted, e.ColumnCompleted, e.BoxCompleted);
+    }
+
+    private void UpdateAutoCompleteTimerInterval()
+    {
+        var milliseconds = Math.Clamp(_viewModel.AutoCompleteTickIntervalMilliseconds, 120, 2000);
+        _autoCompleteTimer.Interval = TimeSpan.FromMilliseconds(milliseconds);
     }
 }

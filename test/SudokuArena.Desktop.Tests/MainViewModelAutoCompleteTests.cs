@@ -1,3 +1,4 @@
+using SudokuArena.Application.AutoComplete;
 using SudokuArena.Application.Puzzles;
 using SudokuArena.Desktop.Theming;
 using SudokuArena.Desktop.ViewModels;
@@ -85,6 +86,38 @@ public sealed class MainViewModelAutoCompleteTests
         Assert.Equal(9, viewModel.AutoCompleteRemainingToSolve);
         Assert.True(viewModel.IsAutoCompleteTriggerReady);
         Assert.Equal(AutoCompleteSessionState.Prompted, viewModel.AutoCompleteSessionState);
+    }
+
+    [Fact]
+    public void AutoComplete_ShouldUsePolicyCalibration_ForTierAndInterval()
+    {
+        var viewModel = new MainViewModel(PuzzleWithNineGaps, SolvedBoard, new AutoCompletePolicyEvaluator())
+        {
+            SelectedDifficultyTier = DifficultyTier.Beginner,
+            AutoCompleteEnabled = true
+        };
+
+        Assert.Equal(6, viewModel.AutoCompleteTriggerMinRemaining);
+        Assert.Equal(10, viewModel.AutoCompleteTriggerMaxRemaining);
+        Assert.Equal(300, viewModel.AutoCompleteTickIntervalMilliseconds);
+        Assert.True(viewModel.IsAutoCompleteTriggerReady);
+    }
+
+    [Fact]
+    public void AutoComplete_ShouldUpdatePolicyCalibration_WhenDifficultyChanges()
+    {
+        var viewModel = new MainViewModel(PuzzleWithNineGaps, SolvedBoard, new AutoCompletePolicyEvaluator())
+        {
+            AutoCompleteEnabled = true
+        };
+
+        viewModel.SelectedDifficultyTier = DifficultyTier.Expert;
+
+        Assert.Equal(4, viewModel.AutoCompleteTriggerMinRemaining);
+        Assert.Equal(7, viewModel.AutoCompleteTriggerMaxRemaining);
+        Assert.Equal(200, viewModel.AutoCompleteTickIntervalMilliseconds);
+        Assert.False(viewModel.IsAutoCompleteTriggerReady);
+        Assert.Equal(AutoCompleteSessionState.Idle, viewModel.AutoCompleteSessionState);
     }
 
     [Fact]

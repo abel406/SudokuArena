@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SudokuArena.Application.AutoComplete;
 using SudokuArena.Application.Puzzles;
 using SudokuArena.Desktop.Theming;
 using SudokuArena.Domain.Models;
@@ -10,8 +11,7 @@ namespace SudokuArena.Desktop.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private const int ErrorLimitValue = 3;
-    private const int AutoCompleteTriggerMinRemaining = 5;
-    private const int AutoCompleteTriggerMaxRemaining = 9;
+    private const int DefaultAutoCompleteTickIntervalMilliseconds = 250;
 
     private readonly int?[] _cells = new int?[81];
     private readonly bool[] _givens = new bool[81];
@@ -31,34 +31,40 @@ public partial class MainViewModel : ObservableObject
     private readonly ThemeManager? _themeManager;
     private readonly IThemePreferenceStore? _themePreferenceStore;
     private readonly IPuzzleProvider? _puzzleProvider;
+    private readonly IAutoCompletePolicyEvaluator? _autoCompletePolicyEvaluator;
 
     public MainViewModel()
-        : this(SudokuDefaults.SamplePuzzle, null, null, null)
+        : this(SudokuDefaults.SamplePuzzle, null, null, null, null, null)
     {
     }
 
     public MainViewModel(string puzzle)
-        : this(puzzle, null, null, null)
+        : this(puzzle, null, null, null, null, null)
     {
     }
 
     public MainViewModel(string puzzle, string solution)
-        : this(puzzle, solution, null, null)
+        : this(puzzle, solution, null, null, null, null)
+    {
+    }
+
+    public MainViewModel(string puzzle, string solution, IAutoCompletePolicyEvaluator autoCompletePolicyEvaluator)
+        : this(puzzle, solution, null, null, null, autoCompletePolicyEvaluator)
     {
     }
 
     public MainViewModel(ThemeManager themeManager)
-        : this(SudokuDefaults.SamplePuzzle, null, themeManager, null)
+        : this(SudokuDefaults.SamplePuzzle, null, themeManager, null, null, null)
     {
     }
 
     public MainViewModel(ThemeManager themeManager, IThemePreferenceStore themePreferenceStore)
-        : this(SudokuDefaults.SamplePuzzle, null, themeManager, themePreferenceStore)
+        : this(SudokuDefaults.SamplePuzzle, null, themeManager, themePreferenceStore, null, null)
     {
     }
 
     public MainViewModel(IPuzzleProvider puzzleProvider)
-        : this(SudokuDefaults.SamplePuzzle, null, null, null, puzzleProvider)
+        : this(SudokuDefaults.SamplePuzzle, null, null, null, puzzleProvider, null)
     {
     }
 
@@ -66,7 +72,22 @@ public partial class MainViewModel : ObservableObject
         ThemeManager themeManager,
         IThemePreferenceStore themePreferenceStore,
         IPuzzleProvider puzzleProvider)
-        : this(SudokuDefaults.SamplePuzzle, null, themeManager, themePreferenceStore, puzzleProvider)
+        : this(SudokuDefaults.SamplePuzzle, null, themeManager, themePreferenceStore, puzzleProvider, null)
+    {
+    }
+
+    public MainViewModel(
+        ThemeManager themeManager,
+        IThemePreferenceStore themePreferenceStore,
+        IPuzzleProvider puzzleProvider,
+        IAutoCompletePolicyEvaluator autoCompletePolicyEvaluator)
+        : this(
+            SudokuDefaults.SamplePuzzle,
+            null,
+            themeManager,
+            themePreferenceStore,
+            puzzleProvider,
+            autoCompletePolicyEvaluator)
     {
     }
 
@@ -75,11 +96,13 @@ public partial class MainViewModel : ObservableObject
         string? solution,
         ThemeManager? themeManager,
         IThemePreferenceStore? themePreferenceStore,
-        IPuzzleProvider? puzzleProvider = null)
+        IPuzzleProvider? puzzleProvider = null,
+        IAutoCompletePolicyEvaluator? autoCompletePolicyEvaluator = null)
     {
         _themeManager = themeManager;
         _themePreferenceStore = themePreferenceStore;
         _puzzleProvider = puzzleProvider;
+        _autoCompletePolicyEvaluator = autoCompletePolicyEvaluator;
         NumberOptions = new ObservableCollection<NumberOptionItem>(
             Enumerable.Range(1, 9).Select(x => new NumberOptionItem(x)));
         ThemeModeOptions = Enum.GetValues<ThemeMode>();
@@ -138,6 +161,15 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private int _autoCompleteRemainingToSolve;
+
+    [ObservableProperty]
+    private int _autoCompleteTriggerMinRemaining = 5;
+
+    [ObservableProperty]
+    private int _autoCompleteTriggerMaxRemaining = 9;
+
+    [ObservableProperty]
+    private int _autoCompleteTickIntervalMilliseconds = DefaultAutoCompleteTickIntervalMilliseconds;
 
     [ObservableProperty]
     private int _autoCompleteQueueTotal;
@@ -325,6 +357,7 @@ public partial class MainViewModel : ObservableObject
     {
         DifficultyLabel = ToDifficultyLabel(value);
         _themePreferenceStore?.SaveDifficultyTier(value);
+        EvaluateAutoCompleteSession();
     }
 
     [RelayCommand]
@@ -867,17 +900,31 @@ public partial class MainViewModel : ObservableObject
     {
         AutoCompleteRemainingToSolve = CountRemainingEditableCells();
 
+        var policyDecision = _autoCompletePolicyEvaluator?.Evaluate(new AutoCompletePolicyInput(
+            AutoCompleteEnabled,
+            IsGameFinished,
+            IsAwaitingDefeatDecision,
+            AutoCompleteSessionState == AutoCompleteSessionState.Cancelled,
+            AutoCompleteRemainingToSolve,
+            SelectedDifficultyTier));
+
+        AutoCompleteTriggerMinRemaining = policyDecision?.MinRemainingToTrigger ?? 5;
+        AutoCompleteTriggerMaxRemaining = policyDecision?.MaxRemainingToTrigger ?? 9;
+        AutoCompleteTickIntervalMilliseconds =
+            policyDecision?.TickIntervalMilliseconds ?? DefaultAutoCompleteTickIntervalMilliseconds;
+
         if (AutoCompleteSessionState == AutoCompleteSessionState.Running)
         {
             IsAutoCompleteTriggerReady = false;
             return;
         }
 
-        var shouldPrompt = AutoCompleteEnabled &&
-                           !IsGameFinished &&
-                           !IsAwaitingDefeatDecision &&
-                           AutoCompleteSessionState is not AutoCompleteSessionState.Cancelled &&
-                           AutoCompleteRemainingToSolve is >= AutoCompleteTriggerMinRemaining and <= AutoCompleteTriggerMaxRemaining;
+        var shouldPrompt = policyDecision?.ShouldPrompt ??
+                           (AutoCompleteEnabled &&
+                            !IsGameFinished &&
+                            !IsAwaitingDefeatDecision &&
+                            AutoCompleteSessionState is not AutoCompleteSessionState.Cancelled &&
+                            AutoCompleteRemainingToSolve is >= 5 and <= 9);
 
         IsAutoCompleteTriggerReady = shouldPrompt;
 

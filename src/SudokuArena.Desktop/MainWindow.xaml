@@ -290,6 +290,16 @@
                         <TextBlock Text="{Binding AutoCompleteRemainingToSolve, StringFormat=Celdas pendientes: {0}}"
                                    Margin="0,4,0,8"
                                    Foreground="{DynamicResource TextBrush}" />
+                        <TextBlock Margin="0,0,0,8"
+                                   Foreground="{DynamicResource TextBrush}">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="Rango activacion: {0}..{1} | intervalo: {2} ms">
+                                    <Binding Path="AutoCompleteTriggerMinRemaining" />
+                                    <Binding Path="AutoCompleteTriggerMaxRemaining" />
+                                    <Binding Path="AutoCompleteTickIntervalMilliseconds" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
                         <Button Content="Iniciar autocompletado"
                                 Command="{Binding StartAutoCompleteSessionCommand}" />
                     </StackPanel>
