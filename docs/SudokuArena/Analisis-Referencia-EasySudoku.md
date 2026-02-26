@@ -869,9 +869,9 @@ Nota tecnica:
   - sesion temporizada de autocompletado (cola + intervalo por tier)
   - prompt de inicio + overlay en tablero con progreso y boton `Detener`
   - bloqueo de re-disparo tras cancelacion en la misma partida
-  - telemetria local base en VM (inicios, cancelaciones, celdas llenadas)
+  - telemetria local base en VM (inicios, cancelaciones, celdas llenadas) con persistencia local en `desktop-settings.json`
 - Pendiente para paridad funcional tipo APK:
-  - definir/implementar storage de telemetria local persistida y/o eventos de diagnostico
+  - emitir/exportar eventos de diagnostico (actualmente solo contadores persistidos locales)
   - calibrar umbrales/ritmo por dificultad con datos reales de uso.
 
 ### 19.7 Propuesta de implementacion para SudokuArena

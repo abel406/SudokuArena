@@ -151,7 +151,7 @@ Agrupacion por fase:
 | AC-02 | Implementar evaluador de oportunidad de autocompletado | Alta | Completada | Implementado en `Application` (`IAutoCompletePolicyEvaluator`) con contexto de partida y calibracion por dificultad; consumido por `MainViewModel`. |
 | AC-03 | Integrar accion de autocompletado en flujo de jugada | Alta | Completada | Implementada sesion temporizada con cola de celdas, inicio desde prompt, cancelacion por partida e intervalo configurable por tier. |
 | AC-04 | Conectar y respetar settings relacionados (`AutoComplete`, `AutoRemoveNotes`, `AutoNextNumber`) | Alta | Parcial | `AutoComplete` ya persistido y aplicado; faltan `AutoRemoveNotes` y `AutoNextNumber` (aun no existen notas en runtime actual). |
-| AC-05 | Agregar telemetria local de uso de autocompletado | Media | Parcial | Agregados contadores locales en VM (`starts`, `cancelaciones`, `celdas llenadas`); pendiente export/eventos de diagnostico persistidos. |
+| AC-05 | Agregar telemetria local de uso de autocompletado | Media | Parcial | Agregados contadores en VM y persistencia local en `desktop-settings.json`; pendiente export/eventos de diagnostico para analisis. |
 | AC-06 | Pruebas del flujo de autocompletado (unitarias + integracion VM) | Alta | Completada | Cubierto con tests de toggle/persistencia, trigger de sesion, start, ticks, cancelacion y finalizacion de cola. |
 
 Orden recomendado de ejecucion del feature:
