@@ -114,6 +114,13 @@ public partial class MainViewModel : ObservableObject
         _selectedDifficultyTier = initialDifficultyTier;
         DifficultyLabel = ToDifficultyLabel(initialDifficultyTier);
         _autoCompleteEnabled = _themePreferenceStore?.LoadAutoCompleteEnabled() ?? false;
+        var initialTelemetry = _themePreferenceStore?.LoadAutoCompleteTelemetry();
+        if (initialTelemetry is not null)
+        {
+            _autoCompleteStarts = initialTelemetry.Starts;
+            _autoCompleteCancels = initialTelemetry.Cancellations;
+            _autoCompleteFilledCells = initialTelemetry.FilledCells;
+        }
         LoadPuzzle(puzzle, solution);
     }
 
@@ -331,6 +338,21 @@ public partial class MainViewModel : ObservableObject
     partial void OnAutoCompleteCurrentDigitChanged(int value)
     {
         OnPropertyChanged(nameof(AutoCompleteCurrentDigitText));
+    }
+
+    partial void OnAutoCompleteStartsChanged(int value)
+    {
+        PersistAutoCompleteTelemetry();
+    }
+
+    partial void OnAutoCompleteCancelsChanged(int value)
+    {
+        PersistAutoCompleteTelemetry();
+    }
+
+    partial void OnAutoCompleteFilledCellsChanged(int value)
+    {
+        PersistAutoCompleteTelemetry();
     }
 
     partial void OnIsDeleteModeChanged(bool value)
@@ -1286,6 +1308,14 @@ public partial class MainViewModel : ObservableObject
     }
 
     private sealed record AutoCompleteStep(int Index, int Value);
+
+    private void PersistAutoCompleteTelemetry()
+    {
+        _themePreferenceStore?.SaveAutoCompleteTelemetry(new AutoCompleteTelemetrySnapshot(
+            AutoCompleteStarts,
+            AutoCompleteCancels,
+            AutoCompleteFilledCells));
+    }
 }
 
 public sealed record CompletionUnitsEventArgs(

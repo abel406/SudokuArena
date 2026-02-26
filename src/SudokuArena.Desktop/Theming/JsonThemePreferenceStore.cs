@@ -113,6 +113,43 @@ public sealed class JsonThemePreferenceStore : IThemePreferenceStore
         }
     }
 
+    public AutoCompleteTelemetrySnapshot? LoadAutoCompleteTelemetry()
+    {
+        try
+        {
+            var settings = LoadSettings();
+            if (settings is null)
+            {
+                return null;
+            }
+
+            var starts = Math.Max(0, settings.AutoCompleteStarts ?? 0);
+            var cancellations = Math.Max(0, settings.AutoCompleteCancellations ?? 0);
+            var filledCells = Math.Max(0, settings.AutoCompleteFilledCells ?? 0);
+            return new AutoCompleteTelemetrySnapshot(starts, cancellations, filledCells);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public void SaveAutoCompleteTelemetry(AutoCompleteTelemetrySnapshot snapshot)
+    {
+        try
+        {
+            var settings = LoadSettings() ?? new ThemeSettingsDto();
+            settings.AutoCompleteStarts = Math.Max(0, snapshot.Starts);
+            settings.AutoCompleteCancellations = Math.Max(0, snapshot.Cancellations);
+            settings.AutoCompleteFilledCells = Math.Max(0, snapshot.FilledCells);
+            SaveSettings(settings);
+        }
+        catch
+        {
+            // No-op: fallo de escritura no debe bloquear la UI.
+        }
+    }
+
     private ThemeSettingsDto? LoadSettings()
     {
         if (!File.Exists(_settingsFilePath))
@@ -149,5 +186,11 @@ public sealed class JsonThemePreferenceStore : IThemePreferenceStore
         public string? DifficultyTier { get; set; }
 
         public bool? AutoCompleteEnabled { get; set; }
+
+        public int? AutoCompleteStarts { get; set; }
+
+        public int? AutoCompleteCancellations { get; set; }
+
+        public int? AutoCompleteFilledCells { get; set; }
     }
 }

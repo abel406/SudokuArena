@@ -59,5 +59,11 @@ public sealed class MainViewModelDifficultyPreferenceTests
         public void SaveAutoCompleteEnabled(bool enabled)
         {
         }
+
+        public AutoCompleteTelemetrySnapshot? LoadAutoCompleteTelemetry() => null;
+
+        public void SaveAutoCompleteTelemetry(AutoCompleteTelemetrySnapshot snapshot)
+        {
+        }
     }
 }

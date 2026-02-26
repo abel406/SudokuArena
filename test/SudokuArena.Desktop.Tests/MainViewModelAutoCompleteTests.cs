@@ -64,6 +64,20 @@ public sealed class MainViewModelAutoCompleteTests
     }
 
     [Fact]
+    public void Constructor_ShouldLoadPersistedAutoCompleteTelemetry()
+    {
+        var store = new FakePreferenceStore
+        {
+            LoadedTelemetry = new AutoCompleteTelemetrySnapshot(3, 2, 15)
+        };
+        var viewModel = new MainViewModel(new ThemeManager(new FakeDetector()), store);
+
+        Assert.Equal(3, viewModel.AutoCompleteStarts);
+        Assert.Equal(2, viewModel.AutoCompleteCancels);
+        Assert.Equal(15, viewModel.AutoCompleteFilledCells);
+    }
+
+    [Fact]
     public void ChangingAutoCompleteEnabled_ShouldPersistPreference()
     {
         var store = new FakePreferenceStore();
@@ -280,6 +294,21 @@ public sealed class MainViewModelAutoCompleteTests
         Assert.False(viewModel.IsAutoCompleteOverlayVisible);
     }
 
+    [Fact]
+    public void ChangingTelemetryCounters_ShouldPersistTelemetrySnapshot()
+    {
+        var store = new FakePreferenceStore();
+        var viewModel = new MainViewModel(new ThemeManager(new FakeDetector()), store);
+        viewModel.AutoCompleteStarts = 4;
+        viewModel.AutoCompleteCancels = 1;
+        viewModel.AutoCompleteFilledCells = 12;
+
+        Assert.NotNull(store.LastTelemetry);
+        Assert.Equal(viewModel.AutoCompleteStarts, store.LastTelemetry!.Starts);
+        Assert.Equal(viewModel.AutoCompleteCancels, store.LastTelemetry.Cancellations);
+        Assert.Equal(viewModel.AutoCompleteFilledCells, store.LastTelemetry.FilledCells);
+    }
+
     private sealed class FakeDetector : ISystemThemeDetector
     {
         public ThemeMode DetectPreferredMode() => ThemeMode.Light;
@@ -290,6 +319,10 @@ public sealed class MainViewModelAutoCompleteTests
         public bool? LoadedAutoCompleteEnabled { get; set; }
 
         public List<bool> SavedAutoCompleteValues { get; } = [];
+
+        public AutoCompleteTelemetrySnapshot? LoadedTelemetry { get; set; }
+
+        public AutoCompleteTelemetrySnapshot? LastTelemetry { get; private set; }
 
         public ThemeMode? LoadThemeMode() => ThemeMode.System;
 
@@ -308,6 +341,13 @@ public sealed class MainViewModelAutoCompleteTests
         public void SaveAutoCompleteEnabled(bool enabled)
         {
             SavedAutoCompleteValues.Add(enabled);
+        }
+
+        public AutoCompleteTelemetrySnapshot? LoadAutoCompleteTelemetry() => LoadedTelemetry;
+
+        public void SaveAutoCompleteTelemetry(AutoCompleteTelemetrySnapshot snapshot)
+        {
+            LastTelemetry = snapshot;
         }
     }
 }

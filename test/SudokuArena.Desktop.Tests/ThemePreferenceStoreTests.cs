@@ -106,6 +106,38 @@ public sealed class ThemePreferenceStoreTests
         Assert.False(store.LoadAutoCompleteEnabled());
     }
 
+    [Fact]
+    public void SaveAndLoadAutoCompleteTelemetry_ShouldRoundTrip()
+    {
+        var path = BuildTempFilePath();
+        var store = new JsonThemePreferenceStore(path);
+        var snapshot = new AutoCompleteTelemetrySnapshot(5, 2, 17);
+
+        store.SaveAutoCompleteTelemetry(snapshot);
+        var loaded = store.LoadAutoCompleteTelemetry();
+
+        Assert.NotNull(loaded);
+        Assert.Equal(snapshot, loaded);
+    }
+
+    [Fact]
+    public void SaveAllPreferencesAndTelemetry_ShouldPreserveValues()
+    {
+        var path = BuildTempFilePath();
+        var store = new JsonThemePreferenceStore(path);
+        var telemetry = new AutoCompleteTelemetrySnapshot(9, 3, 28);
+
+        store.SaveThemeMode(ThemeMode.Dark);
+        store.SaveDifficultyTier(DifficultyTier.Beginner);
+        store.SaveAutoCompleteEnabled(true);
+        store.SaveAutoCompleteTelemetry(telemetry);
+
+        Assert.Equal(ThemeMode.Dark, store.LoadThemeMode());
+        Assert.Equal(DifficultyTier.Beginner, store.LoadDifficultyTier());
+        Assert.True(store.LoadAutoCompleteEnabled());
+        Assert.Equal(telemetry, store.LoadAutoCompleteTelemetry());
+    }
+
     private static string BuildTempFilePath()
     {
         return Path.Combine(

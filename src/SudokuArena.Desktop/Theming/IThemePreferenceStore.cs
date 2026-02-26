@@ -15,4 +15,8 @@ public interface IThemePreferenceStore
     bool? LoadAutoCompleteEnabled();
 
     void SaveAutoCompleteEnabled(bool enabled);
+
+    AutoCompleteTelemetrySnapshot? LoadAutoCompleteTelemetry();
+
+    void SaveAutoCompleteTelemetry(AutoCompleteTelemetrySnapshot snapshot);
 }
