@@ -6,7 +6,7 @@ Este documento sirve como registro vivo de:
 - lo pendiente,
 - y nuevas ideas para priorizar.
 
-Actualizado: 2026-02-25
+Actualizado: 2026-02-26
 
 Leyenda de siglas del proyecto: `docs/SudokuArena/Leyenda-Siglas.md`
 
@@ -57,7 +57,10 @@ Leyenda de siglas del proyecto: `docs/SudokuArena/Leyenda-Siglas.md`
 - Desktop con modos LAN/Cloud: existe UI y comandos, falta conexion real completa a hub/API en flujo de partida.
 - Perfil de jugador: modelo base creado (`PlayerProfile`), sin casos de uso/API/UI persistidos de punta a punta.
 - Roles: existe gate temporal por `X-Role`, falta autenticacion/autorizacion real.
-- Autocompletado: existe toggle en UI, falta logica funcional (backlog `AC-01..AC-06`).
+- Autocompletado:
+  - fase actual implementada: toggle funcional + persistencia local + relleno por candidato unico al click.
+  - pendiente para paridad tipo APK: trigger por progreso restante, ejecucion por cola temporizada, modal/overlay con cancelacion y estado por partida.
+  - backlog asociado: `AC-01..AC-06`.
 
 ## Pendiente
 - Definir contrato funcional de `Deshacer`:
@@ -144,12 +147,12 @@ Agrupacion por fase:
 
 | ID | Tarea | Prioridad | Estado | Nota |
 |---|---|---|---|---|
-| AC-01 | Definir contrato funcional de autocompletado | Alta | Planificada | Salida minima: reglas documentadas de activacion, exclusiones y comportamiento esperado en juego normal. |
-| AC-02 | Implementar evaluador de oportunidad de autocompletado | Alta | Planificada | Salida minima: motor en Application/Desktop que detecta oportunidad valida (sin afectar givens ni jugadas invalidas). |
-| AC-03 | Integrar accion de autocompletado en flujo de jugada | Alta | Planificada | Salida minima: accion aplica relleno asistido en celda editable, actualiza estado de tablero y conserva compatibilidad con deshacer/puntaje. |
-| AC-04 | Conectar y respetar settings relacionados (`AutoComplete`, `AutoRemoveNotes`, `AutoNextNumber`) | Alta | Planificada | Salida minima: preferencia persistida y aplicada en runtime; comportamiento consistente entre toggles combinados. |
-| AC-05 | Agregar telemetria local de uso de autocompletado | Media | Propuesta | Salida minima: contadores de uso local (clicks/rachas) y eventos internos para diagnostico. |
-| AC-06 | Pruebas del flujo de autocompletado (unitarias + integracion VM) | Alta | Planificada | Salida minima: tests para casos habilitado/deshabilitado, sin oportunidad, con oportunidad y combinacion de settings. |
+| AC-01 | Definir contrato funcional de autocompletado | Alta | Completada | Documentado en `docs/SudokuArena/Analisis-Referencia-EasySudoku.md` (seccion 19): reglas APK, estados y propuesta por fases para SudokuArena. |
+| AC-02 | Implementar evaluador de oportunidad de autocompletado | Alta | Parcial | Implementado MVP por candidato unico en click; pendiente evaluador de oportunidad por progreso restante y estado de sesion. |
+| AC-03 | Integrar accion de autocompletado en flujo de jugada | Alta | Parcial | Implementado MVP en `MainViewModel` (relleno asistido puntual); pendiente ejecucion automatizada por cola temporizada. |
+| AC-04 | Conectar y respetar settings relacionados (`AutoComplete`, `AutoRemoveNotes`, `AutoNextNumber`) | Alta | Parcial | `AutoComplete` ya persistido y aplicado; faltan `AutoRemoveNotes` y `AutoNextNumber` (aun no existen notas en runtime actual). |
+| AC-05 | Agregar telemetria local de uso de autocompletado | Media | Propuesta | Salida minima: contadores de uso local (clicks/rachas/cancelaciones) y eventos internos para diagnostico. |
+| AC-06 | Pruebas del flujo de autocompletado (unitarias + integracion VM) | Alta | Parcial | Agregadas pruebas del MVP (toggle/persistencia/autofill por candidato unico); faltan tests de sesion automatizada y cancelacion. |
 
 Orden recomendado de ejecucion del feature:
 1. `AC-01`

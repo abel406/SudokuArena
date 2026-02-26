@@ -776,3 +776,116 @@ Cobertura del bloque:
 - reglas de prioridad de resaltado (conflicto/seleccion/coincidencia/relacionado),
 - animacion de completado para fila/columna/3x3 y combinaciones,
 - toggles de configuracion y pruebas de regresion.
+
+## 19) Autocompletado: flujo APK y diseno para SudokuArena (confirmado)
+
+### 19.1 Toggle y persistencia (APK)
+
+- Toggle en Settings:
+  - guarda `key_auto_complete`
+  - emite analitica `auto_complete`
+- Evidencia:
+  - `sources/com/meevii/ui/activity/SettingActivity.java:807-809`
+- Persistencia local principal:
+  - SharedPreferences `easy.sudoku.puzzle.solver.free.v2.playerprefs`
+- Evidencia:
+  - `sources/com/meevii/common/utils/k1.java:311`
+
+### 19.2 Activacion automatica (APK)
+
+- El plugin `SudokuAutoComplete` (`si.h`) decide estado `HIDDEN/EXPAND`.
+- Reglas observadas:
+  - requiere toggle ON (`key_auto_complete`)
+  - excluye casos concretos (por ejemplo `SudokuType.ICE`, `GameMode.SIX`)
+  - criterio por progreso restante:
+    - rama simple: `remainFillCount <= 9` y, en modo normal, no antes de `5`
+    - rama AB: ratio `allPencilNumber/remainFillCount < threshold` y `remainFillCount <= 12`
+- Evidencia:
+  - `sources/si/h.java:51-52`
+  - `sources/si/h.java:68-77`
+  - `sources/si/h.java:126`
+  - `sources/si/h.java:130-132`
+  - `sources/com/meevii/abtest/AbTestService.java:714-716`
+  - `sources/com/meevii/abtest/AbTestService.java:770-771`
+  - `sources/com/meevii/abtest/AbTestService.java:1066-1067`
+
+### 19.3 UI del autocompletado (APK)
+
+- Hay dos superficies:
+  - `AutoCompleteView` lateral (slide tab).
+  - overlay de "quick auto complete" con valor actual y boton `cancel`.
+- Evidencia:
+  - `resources/res/layout/activity_main.xml:451-466`
+  - `resources/res/layout/activity_main.xml:631-703`
+  - `sources/com/meevii/ui/view/BaseSlideTabsView.java:244-269`
+
+### 19.4 Ejecucion automatizada y cancelacion (APK)
+
+- Al iniciar auto-completar:
+  - construye cola de celdas editables pendientes (`row`, `col`, `answerNum`)
+  - aplica fills uno por uno con `Handler`.
+- Cadencia observada:
+  - intervalo fijo `250 ms` por celda (`u()`).
+- Cancelacion:
+  - boton cancel marca `hasCancelAutoComplete=true`
+  - detiene cola y emite evento `cancel/auto_completing`
+  - evita relanzar en la misma partida
+- Evidencia:
+  - `sources/com/meevii/ui/activity/MainActivity.java:543-557`
+  - `sources/com/meevii/ui/activity/MainActivity.java:605-613`
+  - `sources/com/meevii/ui/activity/MainActivity.java:714-716`
+  - `sources/com/meevii/ui/activity/MainActivity.java:1508-1513`
+  - `sources/com/meevii/ui/activity/MainActivity.java:495`
+  - `sources/com/meevii/data/bean/GameData.java:1121-1122`
+  - `sources/com/meevii/data/bean/GameData.java:1430-1431`
+
+Nota tecnica:
+- No se encontro en decompilado una aceleracion explicita del intervalo (el delay visible es fijo en `250 ms`).
+- Si en UX se percibe aceleracion, puede deberse a animaciones/cola decreciente u otro flujo no lineal.
+
+### 19.5 Estado por perfil y por partida (APK)
+
+- Persistente entre partidas/dispositivo:
+  - toggle `key_auto_complete` (perfil local).
+- Efimero por partida:
+  - `isShowAutoComplete`
+  - `hasCancelAutoComplete`
+  - contadores de click/racha para gating AB (`auto_complete_click_count`, `auto_complete_click_streak_count`).
+- Evidencia:
+  - `sources/com/meevii/ui/activity/MainActivity.java:446`
+  - `sources/com/meevii/ui/activity/MainActivity.java:561-566`
+  - `sources/com/meevii/ui/activity/MainActivity.java:592-596`
+  - `sources/com/meevii/data/bean/GameData.java:1165-1166`
+  - `sources/com/meevii/data/bean/GameData.java:1651-1652`
+
+### 19.6 Estado actual en SudokuArena (2026-02-26)
+
+- Implementado hoy:
+  - toggle `AutoCompleteEnabled` funcional
+  - persistencia local de la preferencia
+  - autocompletado por click: si celda editable vacia tiene un unico candidato valido, se rellena.
+- Pendiente para paridad funcional tipo APK:
+  - trigger automatico por progreso restante
+  - sesion de autocompletado en cola con intervalo
+  - overlay/modal con progreso y boton cancelar
+  - estado efimero por partida (`cancelado`, `ya mostrado`) y telemetria local.
+
+### 19.7 Propuesta de implementacion para SudokuArena
+
+Fase 1 (paridad minima util):
+- Politica de activacion en Application:
+  - `remainingEditableCount`, `remainingToSolve`, estado de toggle, estado partida.
+- Estado de sesion en ViewModel:
+  - `Idle -> Prompted -> Running -> Cancelled -> Finished`.
+- Cola de autocompletado:
+  - ticks temporizados (inicio fijo, por ejemplo `250 ms`) con cancelacion segura.
+
+Fase 2 (paridad UX):
+- Overlay WPF dedicado:
+  - valor actual, texto de progreso y boton cancelar.
+- Bloqueo de re-disparo por partida tras `cancel`.
+- Integracion de analitica local (sin dependencia cloud): clicks, cancelaciones, celdas completadas.
+
+Fase 3 (calibracion):
+- Ajuste de umbrales y ritmo por telemetria real de SudokuArena.
+- Opcional: variaciones por dificultad/mode sin replicar AB de terceros.
