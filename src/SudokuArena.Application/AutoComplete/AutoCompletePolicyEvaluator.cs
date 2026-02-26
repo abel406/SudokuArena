@@ -4,21 +4,17 @@ namespace SudokuArena.Application.AutoComplete;
 
 public sealed class AutoCompletePolicyEvaluator : IAutoCompletePolicyEvaluator
 {
-    private static readonly IReadOnlyDictionary<DifficultyTier, AutoCompleteTierCalibration> TierCalibrations =
-        new Dictionary<DifficultyTier, AutoCompleteTierCalibration>
-        {
-            [DifficultyTier.Beginner] = new(6, 10, 300),
-            [DifficultyTier.Easy] = new(5, 9, 275),
-            [DifficultyTier.Medium] = new(5, 9, 250),
-            [DifficultyTier.Hard] = new(4, 8, 225),
-            [DifficultyTier.Expert] = new(4, 7, 200)
-        };
+    private readonly IAutoCompleteCalibrationSource? _calibrationSource;
+
+    public AutoCompletePolicyEvaluator(IAutoCompleteCalibrationSource? calibrationSource = null)
+    {
+        _calibrationSource = calibrationSource;
+    }
 
     public AutoCompletePolicyDecision Evaluate(AutoCompletePolicyInput input)
     {
-        var calibration = TierCalibrations.TryGetValue(input.DifficultyTier, out var byTier)
-            ? byTier
-            : TierCalibrations[DifficultyTier.Medium];
+        var calibration = _calibrationSource?.GetCalibration(input.DifficultyTier) ??
+                          AutoCompletePolicyDefaults.GetCalibration(input.DifficultyTier);
 
         var remaining = Math.Max(0, input.RemainingEditableToSolve);
         var shouldPrompt = input.AutoCompleteEnabled &&
@@ -34,9 +30,4 @@ public sealed class AutoCompletePolicyEvaluator : IAutoCompletePolicyEvaluator
             calibration.MinRemainingToTrigger,
             calibration.MaxRemainingToTrigger);
     }
-
-    private sealed record AutoCompleteTierCalibration(
-        int MinRemainingToTrigger,
-        int MaxRemainingToTrigger,
-        int TickIntervalMilliseconds);
 }

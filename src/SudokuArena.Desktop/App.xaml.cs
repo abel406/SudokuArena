@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using SudokuArena.Application.AutoComplete;
 using SudokuArena.Application.IoC;
 using SudokuArena.Application.Puzzles;
 using SudokuArena.Desktop.Theming;
@@ -29,6 +30,9 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<ISystemThemeDetector, WindowsThemeDetector>();
                 services.AddSingleton<IThemePreferenceStore, JsonThemePreferenceStore>();
                 services.AddSingleton<ThemeManager>();
+                services.AddSingleton<JsonAutoCompleteCalibrationSource>();
+                services.AddSingleton<IAutoCompleteCalibrationSource>(sp => sp.GetRequiredService<JsonAutoCompleteCalibrationSource>());
+                services.AddSingleton<AutoCompleteTelemetryCalibrationService>();
                 services.AddSingleton<IAutoCompleteDiagnosticsSink, JsonLineAutoCompleteDiagnosticsSink>();
                 services.AddSingleton<IPuzzleProvider>(_ =>
                 {
@@ -59,6 +63,9 @@ public partial class App : System.Windows.Application
         var themePreferences = _host.Services.GetRequiredService<IThemePreferenceStore>();
         var requestedThemeMode = themePreferences.LoadThemeMode() ?? DesktopThemeMode.System;
         _ = themeManager.ApplyTheme(requestedThemeMode);
+
+        var calibrationService = _host.Services.GetRequiredService<AutoCompleteTelemetryCalibrationService>();
+        _ = calibrationService.TryRebuildCalibration();
 
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
         mainWindow.Show();

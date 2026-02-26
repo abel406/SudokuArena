@@ -68,4 +68,32 @@ public sealed class AutoCompletePolicyEvaluatorTests
 
         Assert.False(decision.ShouldPrompt);
     }
+
+    [Fact]
+    public void Evaluate_ShouldUseExternalCalibration_WhenAvailable()
+    {
+        var evaluator = new AutoCompletePolicyEvaluator(new FakeCalibrationSource());
+        var decision = evaluator.Evaluate(new AutoCompletePolicyInput(
+            AutoCompleteEnabled: true,
+            IsGameFinished: false,
+            IsAwaitingDefeatDecision: false,
+            IsSessionCancelledForMatch: false,
+            RemainingEditableToSolve: 12,
+            DifficultyTier: DifficultyTier.Medium));
+
+        Assert.True(decision.ShouldPrompt);
+        Assert.Equal(10, decision.MinRemainingToTrigger);
+        Assert.Equal(13, decision.MaxRemainingToTrigger);
+        Assert.Equal(320, decision.TickIntervalMilliseconds);
+    }
+
+    private sealed class FakeCalibrationSource : IAutoCompleteCalibrationSource
+    {
+        public AutoCompleteTierCalibration? GetCalibration(DifficultyTier difficultyTier)
+        {
+            return difficultyTier == DifficultyTier.Medium
+                ? new AutoCompleteTierCalibration(10, 13, 320)
+                : null;
+        }
+    }
 }

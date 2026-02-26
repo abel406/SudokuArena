@@ -11,10 +11,7 @@ public sealed class JsonLineAutoCompleteDiagnosticsSink : IAutoCompleteDiagnosti
     public JsonLineAutoCompleteDiagnosticsSink(string? logFilePath = null)
     {
         _logFilePath = string.IsNullOrWhiteSpace(logFilePath)
-            ? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "SudokuArena",
-                "autocomplete-events.ndjson")
+            ? AutoCompleteTelemetryPaths.GetDefaultEventsPath()
             : logFilePath;
     }
 
