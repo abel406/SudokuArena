@@ -1,6 +1,6 @@
 # Leyenda de Siglas (SudokuArena)
 
-Actualizado: 2026-02-25
+Actualizado: 2026-02-26
 
 ## Regla
 - Toda sigla nueva usada en documentacion tecnica debe agregarse aqui.
@@ -30,6 +30,7 @@ Actualizado: 2026-02-25
 - `JWT`: JSON Web Token.
 - `LAN`: Local Area Network.
 - `MVP`: Minimum Viable Product.
+- `NDJSON`: Newline Delimited JSON.
 - `SDK`: Software Development Kit.
 - `SE` (en `weighted_se`): Score Estimate (estimacion de score/dificultad del solver).
 - `UI`: User Interface.

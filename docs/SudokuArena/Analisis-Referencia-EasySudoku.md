@@ -871,8 +871,9 @@ Nota tecnica:
   - bloqueo de re-disparo tras cancelacion en la misma partida
   - telemetria local base en VM (inicios, cancelaciones, celdas llenadas) con persistencia local en `desktop-settings.json`
   - export de eventos de diagnostico local en `autocomplete-events.ndjson` (inicio/cancelacion/finalizacion)
+  - calibracion local automatica al iniciar (`autocomplete-events.ndjson` -> `autocomplete-calibration.json`) con consumo por `IAutoCompleteCalibrationSource`
 - Pendiente para paridad funcional tipo APK:
-  - calibrar umbrales/ritmo por dificultad con datos reales de uso.
+  - `AutoRemoveNotes` y `AutoNextNumber` (dependen de implementar notas/candidatos en runtime actual).
 
 ### 19.7 Propuesta de implementacion para SudokuArena
 
@@ -893,3 +894,6 @@ Fase 2 (paridad UX):
 Fase 3 (calibracion):
 - Ajuste de umbrales y ritmo por telemetria real de SudokuArena.
 - Opcional: variaciones por dificultad/mode sin replicar AB de terceros.
+
+Estado fase 3:
+- Completada en entorno local con calibracion heuristica por tier (muestras minimas por dificultad) y override runtime.
