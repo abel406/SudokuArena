@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SudokuArena.Application.AutoComplete;
 using SudokuArena.Application.Puzzles;
+using SudokuArena.Application.Scoring;
 using SudokuArena.Desktop.Telemetry;
 using SudokuArena.Desktop.Theming;
 using SudokuArena.Domain.Models;
@@ -29,6 +30,11 @@ public partial class MainViewModel : ObservableObject
     private bool _isDefeatDialogOpen;
     private readonly Queue<AutoCompleteStep> _autoCompleteQueue = new();
     private int[] _resolvedSolution = [];
+    private IReadOnlyList<int> _currentPuzzleTimeThresholds = [150, 210, 300, 420];
+    private DateTimeOffset _lastCorrectFillAtUtc = DateTimeOffset.UtcNow;
+    private readonly SudokuScoreEngine _scoreEngine = new();
+    private readonly ScoreAccumulator _scoreAccumulator = new();
+    private const ScoreVersion ActiveScoreVersion = ScoreVersion.Old;
     private readonly ThemeManager? _themeManager;
     private readonly IThemePreferenceStore? _themePreferenceStore;
     private readonly IPuzzleProvider? _puzzleProvider;
@@ -152,7 +158,7 @@ public partial class MainViewModel : ObservableObject
             _autoCompleteCancels = initialTelemetry.Cancellations;
             _autoCompleteFilledCells = initialTelemetry.FilledCells;
         }
-        LoadPuzzle(puzzle, solution);
+        LoadPuzzle(puzzle, solution, null);
     }
 
     [ObservableProperty]
@@ -175,6 +181,12 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private int _score;
+
+    [ObservableProperty]
+    private int _oldScore;
+
+    [ObservableProperty]
+    private int _newScore;
 
     [ObservableProperty]
     private string _difficultyLabel = "Medio";
@@ -235,6 +247,9 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isVictory;
+
+    [ObservableProperty]
+    private VictorySummary? _lastVictorySummary;
 
     [ObservableProperty]
     private bool _isAwaitingDefeatDecision;
@@ -412,7 +427,7 @@ public partial class MainViewModel : ObservableObject
     {
         if (_puzzleProvider is null)
         {
-            LoadPuzzle(SudokuDefaults.SamplePuzzle, null);
+            LoadPuzzle(SudokuDefaults.SamplePuzzle, null, null);
             StatusMessage = "Nuevo puzzle cargado (muestra local).";
             return;
         }
@@ -424,7 +439,7 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        LoadPuzzle(nextPuzzle.Puzzle, nextPuzzle.Solution);
+        LoadPuzzle(nextPuzzle.Puzzle, nextPuzzle.Solution, nextPuzzle.TimeThresholds);
         DifficultyLabel = ToDifficultyLabel(nextPuzzle.DifficultyTier);
         StatusMessage = $"Nuevo puzzle cargado ({DifficultyLabel}).";
     }
@@ -708,6 +723,7 @@ public partial class MainViewModel : ObservableObject
             _moveHistory.Push(new MoveEntry(index, previousValue));
         }
 
+        var nowUtc = DateTimeOffset.UtcNow;
         _cells[index] = value;
         if (value is >= 1 and <= 9)
         {
@@ -725,33 +741,156 @@ public partial class MainViewModel : ObservableObject
 
         if (isInvalidMove)
         {
+            ApplyScoreMove(new ScoreMoveInput(
+                SelectedDifficultyTier,
+                IsCorrectEditableFill: false,
+                SecondsSinceLastCorrectFill: 0,
+                CompletedUnitsCount: 0,
+                NumberUsedUp: false));
+
             ErrorCount = Math.Min(ErrorCount + 1, ErrorLimitValue);
             StatusMessage = "Movimiento invalido: ese numero no encaja en la celda.";
             TriggerDefeatThresholdIfNeeded();
         }
-        else if (IsSolved())
+        else if (value is null)
         {
-            Score += 20;
+            StatusMessage = "Celda borrada.";
+        }
+        else if (value is int placedDigit)
+        {
+            var completedUnitsCount = CountCompletedUnits(completionEventArgs);
+            var secondsSinceLastCorrectFill = (int)Math.Max(0, (nowUtc - _lastCorrectFillAtUtc).TotalSeconds);
+            _lastCorrectFillAtUtc = nowUtc;
+            var numberUsedUp = IsNumberExhausted(placedDigit);
+            ApplyScoreMove(new ScoreMoveInput(
+                SelectedDifficultyTier,
+                IsCorrectEditableFill: true,
+                SecondsSinceLastCorrectFill: secondsSinceLastCorrectFill,
+                CompletedUnitsCount: completedUnitsCount,
+                NumberUsedUp: numberUsedUp));
+            StatusMessage = "Movimiento aplicado.";
+        }
+
+        if (!isInvalidMove && IsSolved())
+        {
+            ApplyFinishScore();
             AutoCompleteSessionState = AutoCompleteSessionState.Finished;
             IsGameFinished = true;
             IsVictory = true;
             StatusMessage = "Puzzle completado.";
             GameWon?.Invoke(this, EventArgs.Empty);
         }
-        else if (value is null)
-        {
-            StatusMessage = "Celda borrada.";
-        }
-        else
-        {
-            Score += 5;
-            StatusMessage = "Movimiento aplicado.";
-        }
 
         UpdateNumberOptions();
         EvaluateAutoCompleteSession();
         NotifyBoardChanged();
         UpdateActionCommandStates();
+    }
+
+    private void ApplyScoreMove(ScoreMoveInput input)
+    {
+        var result = _scoreEngine.ScoreMove(input);
+        _scoreAccumulator.AddMove(result);
+        RefreshScores();
+    }
+
+    private void ApplyFinishScore()
+    {
+        var elapsedSeconds = GetElapsedSeconds();
+        var finishResult = _scoreEngine.ScoreFinish(new ScoreFinishInput(
+            SelectedDifficultyTier,
+            elapsedSeconds,
+            ErrorCount,
+            ErrorLimitValue,
+            IsPerfectRun(),
+            _currentPuzzleTimeThresholds));
+        _scoreAccumulator.AddFinish(finishResult);
+        RefreshScores();
+        LastVictorySummary = BuildVictorySummary(elapsedSeconds);
+    }
+
+    private void RefreshScores()
+    {
+        OldScore = _scoreAccumulator.OldScore;
+        NewScore = _scoreAccumulator.NewScore;
+        Score = _scoreEngine.SelectFinalScore(OldScore, NewScore, ActiveScoreVersion);
+    }
+
+    private int GetElapsedSeconds()
+    {
+        var elapsed = DateTimeOffset.UtcNow - _gameStartedUtc - _pausedClockDuration;
+        return Math.Max(0, (int)elapsed.TotalSeconds);
+    }
+
+    private bool IsPerfectRun()
+    {
+        return ErrorCount == 0;
+    }
+
+    private bool IsNumberExhausted(int digit)
+    {
+        return _cells.Count(value => value == digit) == 9;
+    }
+
+    private static int CountCompletedUnits(CompletionUnitsEventArgs? args)
+    {
+        if (args is null)
+        {
+            return 0;
+        }
+
+        var count = 0;
+        if (args.RowCompleted)
+        {
+            count++;
+        }
+
+        if (args.ColumnCompleted)
+        {
+            count++;
+        }
+
+        if (args.BoxCompleted)
+        {
+            count++;
+        }
+
+        return count;
+    }
+
+    private static IReadOnlyList<int> NormalizeTimeThresholds(IReadOnlyList<int>? thresholds)
+    {
+        if (thresholds is null || thresholds.Count != 4 || thresholds.Any(threshold => threshold <= 0))
+        {
+            return [150, 210, 300, 420];
+        }
+
+        var ordered = thresholds.ToArray();
+        Array.Sort(ordered);
+        return ordered;
+    }
+
+    private VictorySummary BuildVictorySummary(int elapsedSeconds)
+    {
+        var elapsedTimeText = $"{elapsedSeconds / 60:00}:{elapsedSeconds % 60:00}";
+        var useNewScore = ActiveScoreVersion == ScoreVersion.New;
+        return new VictorySummary(
+            FinalScore: Score,
+            OldScore: OldScore,
+            NewScore: NewScore,
+            ScoreVersion: ActiveScoreVersion,
+            DifficultyLabel: DifficultyLabel,
+            ElapsedTimeText: elapsedTimeText,
+            ElapsedSeconds: elapsedSeconds,
+            ErrorCount: ErrorCount,
+            IsPerfect: IsPerfectRun(),
+            MoveFillScore: useNewScore ? _scoreAccumulator.NewMoveFillScore : _scoreAccumulator.OldMoveFillScore,
+            ClearScore: useNewScore ? _scoreAccumulator.NewClearScore : _scoreAccumulator.OldClearScore,
+            NumberUseUpScore: useNewScore ? _scoreAccumulator.NewNumberUseUpScore : _scoreAccumulator.OldNumberUseUpScore,
+            TimeBonusScore: useNewScore ? _scoreAccumulator.NewFinishTimeScore : _scoreAccumulator.OldFinishTimeScore,
+            ErrorBonusScore: useNewScore ? _scoreAccumulator.NewFinishErrorScore : _scoreAccumulator.OldFinishErrorScore,
+            PerfectBonusScore: useNewScore ? _scoreAccumulator.NewFinishPerfectScore : _scoreAccumulator.OldFinishPerfectScore,
+            PenaltyScore: useNewScore ? 0 : _scoreAccumulator.OldPenaltyScore);
     }
 
     private bool CanUndoMove() => !IsGameFinished && _moveHistory.Count > 0;
@@ -792,10 +931,11 @@ public partial class MainViewModel : ObservableObject
         return !IsGameFinished && AutoCompleteSessionState == AutoCompleteSessionState.Running;
     }
 
-    private void LoadPuzzle(string puzzle, string? solution)
+    private void LoadPuzzle(string puzzle, string? solution, IReadOnlyList<int>? timeThresholds)
     {
         var board = SudokuBoard.CreateFromString(puzzle);
         _resolvedSolution = ResolveSolutionDigits(puzzle, solution);
+        _currentPuzzleTimeThresholds = NormalizeTimeThresholds(timeThresholds);
         for (var i = 0; i < 81; i++)
         {
             _cells[i] = board.Cells[i];
@@ -811,7 +951,11 @@ public partial class MainViewModel : ObservableObject
         IsAutoCompleteTriggerReady = false;
         AutoCompleteRemainingToSolve = 0;
         ClearAutoCompleteQueue();
+        _scoreAccumulator.Reset();
+        OldScore = 0;
+        NewScore = 0;
         Score = 0;
+        LastVictorySummary = null;
         ErrorCount = 0;
         IsDeleteMode = false;
         IsGameFinished = false;
@@ -819,6 +963,7 @@ public partial class MainViewModel : ObservableObject
         IsAwaitingDefeatDecision = false;
         _isDefeatDialogOpen = false;
         _gameStartedUtc = DateTimeOffset.UtcNow;
+        _lastCorrectFillAtUtc = _gameStartedUtc;
         _clockPausedAtUtc = null;
         _pausedClockDuration = TimeSpan.Zero;
         TickClock();
@@ -1363,6 +1508,24 @@ public sealed record CompletionUnitsEventArgs(
     bool ColumnCompleted,
     bool BoxCompleted);
 
+public sealed record VictorySummary(
+    int FinalScore,
+    int OldScore,
+    int NewScore,
+    ScoreVersion ScoreVersion,
+    string DifficultyLabel,
+    string ElapsedTimeText,
+    int ElapsedSeconds,
+    int ErrorCount,
+    bool IsPerfect,
+    int MoveFillScore,
+    int ClearScore,
+    int NumberUseUpScore,
+    int TimeBonusScore,
+    int ErrorBonusScore,
+    int PerfectBonusScore,
+    int PenaltyScore);
+
 public enum AutoCompleteSessionState
 {
     Idle,
@@ -1387,5 +1550,76 @@ public partial class NumberOptionItem(int number) : ObservableObject
 
     [ObservableProperty]
     private int _remainingCount = 9;
+}
+
+internal sealed class ScoreAccumulator
+{
+    public int OldScore { get; private set; }
+    public int NewScore { get; private set; }
+
+    public int OldMoveFillScore { get; private set; }
+    public int OldClearScore { get; private set; }
+    public int OldNumberUseUpScore { get; private set; }
+    public int OldPenaltyScore { get; private set; }
+    public int OldFinishPerfectScore { get; private set; }
+    public int OldFinishErrorScore { get; private set; }
+    public int OldFinishTimeScore { get; private set; }
+
+    public int NewMoveFillScore { get; private set; }
+    public int NewClearScore { get; private set; }
+    public int NewNumberUseUpScore { get; private set; }
+    public int NewFinishPerfectScore { get; private set; }
+    public int NewFinishErrorScore { get; private set; }
+    public int NewFinishTimeScore { get; private set; }
+
+    public void AddMove(ScoreMoveResult result)
+    {
+        OldScore = Math.Max(0, OldScore + result.OldDelta);
+        NewScore = Math.Max(0, NewScore + result.NewDelta);
+
+        OldMoveFillScore += result.OldFillDelta;
+        OldClearScore += result.OldClearDelta;
+        OldNumberUseUpScore += result.OldNumberUseUpDelta;
+        OldPenaltyScore += result.OldErrorPenaltyDelta;
+
+        NewMoveFillScore += result.NewFillTimeDelta;
+        NewClearScore += result.NewClearDelta;
+        NewNumberUseUpScore += result.NewNumberUseUpDelta;
+    }
+
+    public void AddFinish(ScoreFinishResult result)
+    {
+        OldScore = Math.Max(0, OldScore + result.OldDelta);
+        NewScore = Math.Max(0, NewScore + result.NewDelta);
+
+        OldFinishPerfectScore += result.OldPerfectDelta;
+        OldFinishErrorScore += result.OldErrorDelta;
+        OldFinishTimeScore += result.OldTimeDelta;
+
+        NewFinishPerfectScore += result.NewPerfectDelta;
+        NewFinishErrorScore += result.NewErrorDelta;
+        NewFinishTimeScore += result.NewTimeDelta;
+    }
+
+    public void Reset()
+    {
+        OldScore = 0;
+        NewScore = 0;
+
+        OldMoveFillScore = 0;
+        OldClearScore = 0;
+        OldNumberUseUpScore = 0;
+        OldPenaltyScore = 0;
+        OldFinishPerfectScore = 0;
+        OldFinishErrorScore = 0;
+        OldFinishTimeScore = 0;
+
+        NewMoveFillScore = 0;
+        NewClearScore = 0;
+        NewNumberUseUpScore = 0;
+        NewFinishPerfectScore = 0;
+        NewFinishErrorScore = 0;
+        NewFinishTimeScore = 0;
+    }
 }
 

@@ -134,7 +134,12 @@ public partial class MainWindow : Window
         BoardControl.StartVictoryAnimation(_lastPlayedIndex);
         await Task.Delay(700);
 
-        var dialog = new VictoryWindow(_viewModel.Score, _viewModel.DifficultyLabel)
+        if (_viewModel.LastVictorySummary is null)
+        {
+            return;
+        }
+
+        var dialog = new VictoryWindow(_viewModel.LastVictorySummary)
         {
             Owner = this
         };

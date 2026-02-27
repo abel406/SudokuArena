@@ -92,6 +92,8 @@ En `SyncRepository`:
   - `tournament_season`
   - `favourite`
   Evidencia: `sources/com/meevii/data/db/SudokuGameDataBase_Impl.java:210-215`
+- Desglose operativo BD+scoring (DAO + persistencia + hallazgos runtime):
+  - `docs/SudokuArena/Analisis-BD-Scoring-APK.md`
 
 ### 4.2 DB de alarmas
 
@@ -237,9 +239,13 @@ Evidencia: `sources/com/meevii/sudoku/plugin/SudokuScore.java:35-42`
   - `sources/com/meevii/sudoku/plugin/SudokuScore.java:133-145`
   - `sources/com/meevii/sudoku/plugin/SudokuScore.java:339-349`
   - `sources/com/meevii/data/bean/ScoreChangeBean.java:24-27`
-- Mapa AB visible (parcial, algunos valores quedan via `R` de recursos):
-  - `SIX=140`, `EASY=150`, `HARD=210`, `EXTREME=300`, `SIXTEEN=150`, `KILLER=210`, `ICE=<resource>`
-- Evidencia: `sources/com/meevii/abtest/helper/NumberClearScoreABTestHelper.java:28-53`
+- Mapa AB efectivo (resuelto completo):
+  - por modo: `SIX=140`, `EASY=150`, `MEDIUM=170`, `HARD=210`, `EXPERT=260`, `EXTREME=300`, `SIXTEEN=150`
+  - por tipo: `KILLER=210`, `ICE=260`
+- Evidencia:
+  - `sources/com/meevii/abtest/helper/NumberClearScoreABTestHelper.java:28-53`
+  - `sources/yb/n.java:2926` (`customTheme_theme_gp_correct = 170`)
+  - `sources/yb/n.java:3016` (`customTheme_whiteColorAlpha0_1 = 260`)
 
 ### 8.7 Reglas AB para battle/explore (confirmado)
 
@@ -255,12 +261,72 @@ Evidencia: `sources/com/meevii/sudoku/plugin/SudokuScore.java:35-42`
 ### 8.8 Ruta de "oldScore" (inferencia de alta confianza)
 
 - `F(...)` aparece decompilado de forma incompleta (`UnsupportedOperationException`), pero el pseudocodigo mostrado permite inferir:
-  - premio por acierto dependiente de tiempo y modo (`SIX`, `BEGINNER/EASY`, `MEDIUM`, `HARD`, `EXPERT`, `EXTREME`, `SIXTEEN`)
-  - penalidad fija por modo en error (`-60`, `-150`, `-180`, `-400`, `-640`, `-840`)
-  - suma final: `oldScore += delta_modo + extra` (extra viene de bonus ICE/otros)
+  - premio por acierto con `t = min(time, 120)`:
+    - `SIX`: `180 - t`
+    - `BEGINNER/EASY`: `270 - t`
+    - `MEDIUM`: `420 - 2*t`
+    - `HARD`: `760 - 3*t`
+    - `EXPERT`: `1120 - 4*t`
+    - `EXTREME/SIXTEEN`: `1320 - 4*t`
+  - penalidad fija por error:
+    - `SIX=-60`, `BEGINNER/EASY=-150`, `MEDIUM=-180`, `HARD=-400`, `EXPERT/SIXTEEN=-640`, `EXTREME=-840`
+  - suma final: `oldScore += delta_modo + extra` (extra llega por parametros del flujo, p. ej. bonus adicionales).
+- Nota:
+  - La rutina esta parcialmente decompilada; los valores anteriores salen del bloque de pseudocodigo mostrado y deben tratarse como lectura de alta confianza, no como fuente 100% canonical.
 - Evidencia base del pseudocodigo:
   - `sources/com/meevii/sudoku/plugin/SudokuScore.java:370-475`
   - llamada desde flujo principal: `sources/com/meevii/sudoku/plugin/SudokuScore.java:501`
+
+### 8.9 Gates AB/UI del score (confirmado)
+
+- Flags AB detectadas en `AbTestService`:
+  - `getBattleAddScoreGroup()`
+  - `getExploreAddScoreGroup()`
+  - `getNumberClearScoreGroup()`
+  - `isAnimatedScoreGroup()`
+  - `isNeverScore()`
+  - `isScore16x16Group()`
+- Evidencia: `sources/com/meevii/abtest/AbTestService.java:726`, `:778`, `:918`, `:1140`, `:1267`, `:1324`
+
+- En `MainActivity`, el delta visual de score se gatea por:
+  - modo `SIXTEEN` vs `isScore16x16Group()`
+  - score animation (`isAnimatedScoreGroup()`)
+  - condicional de "never score" (`isNeverScore()`)
+- Evidencia: `sources/com/meevii/ui/activity/MainActivity.java:2252-2256`
+
+- En settings hay toggles dedicados:
+  - `key_game_score_switch`
+  - `key_game_score_anim_switch`
+- Evidencia: `sources/com/meevii/ui/activity/SettingActivity.java:718`, `:748`
+
+- En vista de score, etiqueta textual puede variar (`score`/`score_eb`) y hay modo animado.
+- Evidencia: `sources/com/meevii/sudoku/view/StatusInfoScoreDisplayView.java:240`, `:248-250`
+
+### 8.10 Payload de victoria con datos de scoring (confirmado)
+
+- Al construir `GameWin` se envia:
+  - `time`
+  - `perfect`
+  - `mistake`
+  - `totalMistake`
+  - `hintUsedCount`
+  - `finalScore`
+  - `scoreVersion`
+- Evidencia: `sources/com/meevii/data/bean/GameWin.java:154-183`
+
+### 8.11 Estado de replicacion de scoring (resumen tecnico)
+
+- Tenemos cubierto para replicar en SudokuArena:
+  - formulas de `newScore` por fill/cierre y tabla `NewScoreInfo`.
+  - bucket de tiempo `10/8/6/4/2` con fallback `5`.
+  - condicion `perfect` exacta.
+  - selector final por `scoreVersion`.
+  - bonus `number-use-up` con valores efectivos ya resueltos.
+
+- Puntos con incertidumbre residual:
+  - La ruta `oldScore` ya fue recuperada con `jadx --show-bad-code` (forma goto/simple, sin AST limpio), confirmando formulas de acierto/error:
+    - artefacto: `artifacts/decomp/easy.sudoku.puzzle.solver.free_cli_20260224_215916/sources/com/meevii/sudoku/plugin/SudokuScore.show-bad-code.java`
+  - Parte del comportamiento final depende de grupos AB activos en runtime.
 
 ## 9) Smart-hints y tecnica (confirmado)
 
@@ -554,6 +620,13 @@ Razon tecnica:
 - `question_time_map.json`:
   - `Map<qid, [t1,t2,t3,t4]>` (4 umbrales de tiempo por puzzle)
   - usado por score de tiempo (`10/8/6/4/2`): `sources/com/meevii/sudoku/plugin/SudokuScore.java:236-247`
+- Cobertura real entre mapas (validacion local 2026-02-26):
+  - `solverDetails`: `9369` claves
+  - `question_time_map`: `4409` claves
+  - interseccion: `3524`
+  - solo en `solverDetails`: `5845`
+  - solo en `question_time_map`: `885`
+  - todos los valores de `question_time_map` tienen longitud `4` (`[t1,t2,t3,t4]`)
 - `rank_active_question.json`:
   - lista de objetos `{difficulty, level, reward}` para recompensas/rank activity.
 
@@ -562,7 +635,9 @@ Razon tecnica:
 - El `questionId` de runtime no es estable global:
   - se arma como `mode + randomDigit + paddedIndex`.
   - evidencia: `sources/com/meevii/data/a.java:14-29`
-- El identificador estable de puzzle es el `question` string (qid logico), que es la clave de `question_time_map` y `solverDetails`.
+- El identificador estable de puzzle es el `question` string (qid logico), usado como clave en `solverDetails` y `question_time_map`.
+- Importante:
+  - No hay cobertura 1:1 entre ambos mapas en el lote analizado; el consumidor debe tolerar faltantes (coherente con fallback de tiempo en score).
 
 ### 16.5 Implicacion para SudokuArena (diseno propio recomendado)
 

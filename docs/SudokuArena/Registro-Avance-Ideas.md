@@ -21,6 +21,8 @@ Leyenda de siglas del proyecto: `docs/SudokuArena/Leyenda-Siglas.md`
   - resaltado visual ajustado: gris claro para fila/columna/3x3 y azul para celda activa + digitos coincidentes,
   - conteo de errores con limite,
   - puntaje,
+  - motor de puntuacion versionado (`old/new/final`) con scoring por jugada, cierre de partida y buckets de tiempo por puzzle (`time_map`),
+  - dialogo de victoria con desglose de score (fill, cierres, numero agotado, tiempo, errores, perfecto, penalizaciones y score final),
   - reloj,
   - dialogos de victoria/derrota,
   - pruebas Desktop para flujo de borrado (incluyendo escenario general de celdas no-given en tablero casi completo).
@@ -48,6 +50,14 @@ Leyenda de siglas del proyecto: `docs/SudokuArena/Leyenda-Siglas.md`
   - ya extraidos contrato `GET/POST /sudoku/v1/activity` (request/response y campos parseados),
   - scoring avanzado (selector old/new score, coeficientes por modo, bonus por tiempo/error/perfect/fill, AB hooks battle/explore),
   - contratos DAO secundarios ya mapeados (`Dc`, `active_medal`, `battle_season`, `tournament_season`, `favourite`),
+  - documento operativo dedicado de BD+scoring para continuidad de trabajo: `docs/SudokuArena/Analisis-BD-Scoring-APK.md`,
+  - trazado runtime actualizado de `scoreVersion` + detector de "old scoring" (`rf/v0.q0` y `vj/u.G`) ya documentado en el mismo doc,
+  - verificacion smali global con `apktool 2.12.1` cerrada: no aparece writer externo a `GameData.scoreVersion` fuera de `GameData.fromEntity`,
+  - flujo sync remoto (`qj.n` + `pj.b`) analizado: contrato `game_data.json` no transporta `scoreVersion` (solo `oldScore/newScore`),
+  - automatizado siguiente paso empirico: script `scripts/pull-easy-sudoku-db.ps1` para extraer `Sudoku.db` real del dispositivo (ADB `run-as`) y auditar distribucion de `scoreVersion`,
+  - intento real con dispositivo conectado (`SM-A556E`) documentado: `run-as` bloqueado por app no-debuggable y backup sin BD por reglas de exclusion de `Sudoku.db`,
+  - intento alternativo en Google Play Games (Windows) documentado: ADB proxy deshabilitado y `userdata.img` no parseable como FS/SQLite en offline,
+  - emulador de ranking APK agregado en Application (`ApkScoreRankingEmulator`) con tests de ventana `v1/w1`, ranking y deteccion de `old scoring`,
   - `defaultQbSolverDetails.json` ya descifrado y analizado completo (9369 puzzles),
   - extracto funcional consolidado (cronometro, errores, configuraciones, colores, perfil, persistencia local y sincronizacion) en seccion 17 del analisis,
   - mapa de formatos de bancos (`defaultQb*`, `question_time_map`, `rank_active_question`) ya documentado para diseno de dataset propio,
@@ -175,14 +185,14 @@ Agrupacion por fase:
 
 | ID | Tarea | Prioridad | Estado | Nota |
 |---|---|---|---|---|
-| SC-01 | Definir contrato de scoring versionado (`old/new/final`) en Application | Alta | Planificada | Salida minima: motor de score desacoplado con `ScoreVersion` y selector de `finalScore`. |
-| SC-02 | Implementar tabla de coeficientes por dificultad/modo | Alta | Planificada | Salida minima: coeficientes base por tier (`Beginner..Extreme`, `Six`, `Sixteen`) alineados al comportamiento documentado de referencia. |
-| SC-03 | Integrar `time_map` por puzzle y buckets de tiempo (`10/8/6/4/2`) | Alta | Planificada | Salida minima: bonus de tiempo por umbrales por puzzle con fallback controlado cuando no hay mapa valido. |
-| SC-04 | Implementar score incremental por jugada valida | Alta | Planificada | Salida minima: aplicar score por fill, bonus por cierre de fila/columna/subgrid y bonus por digito agotado. |
-| SC-05 | Implementar score de cierre de partida (perfect/error/time) | Alta | Planificada | Salida minima: bonus final por partida perfecta, margen de errores y tiempo final. |
-| SC-06 | Integrar en UI desglose de score y score final en victoria | Media | Propuesta | Salida minima: mostrar desglose (fill/clear/time/error/perfect/final) en dialogo de victoria o panel de resultado. |
+| SC-01 | Definir contrato de scoring versionado (`old/new/final`) en Application | Alta | Completada | Implementado: `SudokuScoreEngine`, `ScoreVersion` y selector de `finalScore`. |
+| SC-02 | Implementar tabla de coeficientes por dificultad/modo | Alta | Completada | Implementado: coeficientes base por tier `Beginner..Expert` (9x9); pendientes ajustes para modos `Six` y `Sixteen`. |
+| SC-03 | Integrar `time_map` por puzzle y buckets de tiempo (`10/8/6/4/2`) | Alta | Completada | Implementado: `JsonPuzzleProvider` carga thresholds por puzzle y motor aplica fallback controlado cuando no hay mapa valido. |
+| SC-04 | Implementar score incremental por jugada valida | Alta | Completada | Implementado: score por fill-time, bonus por cierre de unidades y bonus por numero agotado; penalizacion por jugada invalida en modelo old. |
+| SC-05 | Implementar score de cierre de partida (perfect/error/time) | Alta | Completada | Implementado: bonus final por partida perfecta, margen de errores y bucket de tiempo. |
+| SC-06 | Integrar en UI desglose de score y score final en victoria | Media | Completada | Implementado: dialogo de victoria con score final + desglose por componentes. |
 | SC-07 | Calibrar escala objetivo por dificultad (incluyendo rangos altos en hard/expert) | Alta | Propuesta | Salida minima: distribucion de puntajes por tier con objetivos de rango (ej. partidas hard en banda alta comparable a referencia). |
-| SC-08 | Pruebas unitarias/integracion del motor de scoring | Alta | Planificada | Salida minima: pruebas por componente (por-jugada, cierre, tiempo, errores, selector de version y no-regresion). |
+| SC-08 | Pruebas unitarias/integracion del motor de scoring | Alta | Completada | Implementado: pruebas unitarias en Application (`SudokuScoreEngineTests`) e integracion VM (`MainViewModelScoringTests`). |
 
 Orden recomendado de ejecucion del feature:
 1. `SC-01`

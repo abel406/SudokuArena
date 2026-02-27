@@ -10,4 +10,5 @@ public sealed record PuzzleDefinition(
     int MaxTechniqueRate,
     int AdvancedHits,
     PuzzleBoardKind BoardKind = PuzzleBoardKind.Classic9x9,
-    PuzzleMode Mode = PuzzleMode.Unknown);
+    PuzzleMode Mode = PuzzleMode.Unknown,
+    IReadOnlyList<int>? TimeThresholds = null);

@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Victoria"
-        Width="500"
-        Height="360"
+        Width="560"
+        Height="520"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource CanvasBackgroundBrush}">
@@ -25,6 +25,7 @@
             Background="{DynamicResource SurfaceBrush}">
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -49,16 +50,62 @@
                            FontSize="15"
                            Foreground="{DynamicResource TextBrush}"
                            HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding TimeText}"
+                           FontSize="14"
+                           Foreground="{DynamicResource TextBrush}"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding ErrorText}"
+                           FontSize="14"
+                           Foreground="{DynamicResource TextBrush}"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding PerfectText}"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource AccentBrush}"
+                           HorizontalAlignment="Center" />
             </StackPanel>
 
-            <Image Grid.Row="2"
+            <Border Grid.Row="2"
+                    Margin="0,4,0,6"
+                    Padding="10"
+                    CornerRadius="8"
+                    Background="{DynamicResource CanvasBackgroundBrush}">
+                <StackPanel>
+                    <TextBlock Text="Desglose de puntaje"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextBrush}" />
+                    <TextBlock Text="{Binding ScoreModelText}"
+                               Margin="0,4,0,0"
+                               Foreground="{DynamicResource TextBrush}" />
+                    <TextBlock Text="{Binding MoveFillText}"
+                               Foreground="{DynamicResource TextBrush}" />
+                    <TextBlock Text="{Binding ClearText}"
+                               Foreground="{DynamicResource TextBrush}" />
+                    <TextBlock Text="{Binding NumberUseUpText}"
+                               Foreground="{DynamicResource TextBrush}" />
+                    <TextBlock Text="{Binding TimeBonusText}"
+                               Foreground="{DynamicResource TextBrush}" />
+                    <TextBlock Text="{Binding ErrorBonusText}"
+                               Foreground="{DynamicResource TextBrush}" />
+                    <TextBlock Text="{Binding PerfectBonusText}"
+                               Foreground="{DynamicResource TextBrush}" />
+                    <TextBlock Text="{Binding PenaltyText}"
+                               Foreground="{DynamicResource TextBrush}" />
+                    <TextBlock Text="{Binding RawScoresText}"
+                               Margin="0,4,0,0"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextBrush}" />
+                </StackPanel>
+            </Border>
+
+            <Image Grid.Row="3"
                    Width="170"
                    Height="170"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"
                    Source="{StaticResource CelebrationImage}" />
 
-            <Button Grid.Row="3"
+            <Button Grid.Row="4"
                     Content="Continuar"
                     Width="150"
                     HorizontalAlignment="Center"

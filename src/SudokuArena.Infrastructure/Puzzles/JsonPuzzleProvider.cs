@@ -146,7 +146,8 @@ public sealed class JsonPuzzleProvider : IPuzzleProvider
                 solverDetail.MaxTechniqueRate,
                 solverDetail.AdvancedHits,
                 entry.BoardKind,
-                resolvedMode));
+                resolvedMode,
+                timeBuckets.ToArray()));
         }
 
         if (definitions.Count == 0)
